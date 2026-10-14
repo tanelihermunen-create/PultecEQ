@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pultec EQP-1A Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---- Overall page look ---- */
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: #2b2f33;
+    font-family: 'Figtree', -apple-system, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 12px 48px;
+  }
+  h1 { font-weight: 600; font-size: 20px; letter-spacing: 0.5px; margin: 0 0 4px; color: #1f2327; }
+  .subtitle { color: #7a828b; font-size: 13px; margin-bottom: 20px; }
+
+  /* ---- The curve display (measurement-software style) ---- */
+  #curve {
+    background: #ffffff;
+    border: 1px solid #c4c9cf;
+    border-radius: 8px;
+    display: block;
+    max-width: 100%;
+  }
+
+  /* ---- The EQP-1A faceplate ---- */
+  .panel {
+    position: relative;
+    margin-top: 14px;
+    width: 860px; max-width: 100%;
+    box-sizing: border-box;
+    background: linear-gradient(160deg, #3f8296, #306676);
+    border-radius: 4px;
+    padding: 20px 48px 20px;
+    box-shadow: inset 0 1px 3px rgba(255,255,255,0.18), 0 3px 10px rgba(0,0,0,0.09);
+  }
+  /* Round-ended rack-mount slots cut into the left/right edges. These are
+     page-coloured "stadium" shapes that straddle the edge, so the inner end
+     reads as a rounded cutout. */
+  .notch {
+    position: absolute; width: 34px; height: 19px;
+    background: #ffffff; border-radius: 10px;
+  }
+  .notch.l1, .notch.l2 { left: -17px; }
+  .notch.r1, .notch.r2 { right: -17px; }
+  .notch.l1, .notch.r1 { top: 27.5%; }
+  .notch.l2, .notch.r2 { top: 65.5%; }
+  /* Corner rack-mount screws */
+  .screw {
+    position: absolute; width: 11px; height: 11px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #e9edf0, #8a9096 60%, #5d6367);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .screw::after {
+    content: ""; position: absolute; left: 1px; right: 1px; top: 50%;
+    height: 1.5px; margin-top: -0.75px; background: rgba(0,0,0,0.45);
+  }
+  .screw.tl { left: 22px; top: 14%; } .screw.tr { right: 22px; top: 14%; }
+  .screw.bl { left: 22px; top: 86%; } .screw.br { right: 22px; top: 86%; }
+  .screw { transform: translateY(-50%); }
+
+  /* Engraved maker's mark on the left of the plate */
+  .brand {
+    position: absolute; left: 44px; bottom: 14px;
+    color: #eef3f5; font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+    line-height: 1.5; text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    text-align: left;
+  }
+  .brand span { font-size: 8px; font-weight: 600; letter-spacing: 0.5px; }
+
+  .row { display: flex; justify-content: flex-end; gap: 20px; }
+  .row.bottom { margin-top: 16px; gap: 48px; }
+  /* Faded label sitting between a Boost/Atten pair (LOW, HIGH) */
+  .grouptag {
+    align-self: flex-start; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; letter-spacing: 2px; color: #eef3f5; opacity: 0.75;
+    margin: 1px -8px 0; text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+  }
+
+  .control { display: flex; flex-direction: column; align-items: center; width: 90px; }
+  .control .label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+    color: #eef3f5; margin-bottom: 14px; text-align: center; min-height: 13px;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+  }
+  .control .label .unit { opacity: 0.7; }
+  .control .readout {
+    font-size: 13px; color: #d8eef5; margin-top: 7px; min-height: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Pultec star knob: a ROUND outer disc (.knob) carrying a raised 7-point
+     STAR body (::before) with a smooth, ringed centre cap (::after) in the
+     middle. The silver pointer line and the 0..10 number ring are added by
+     JavaScript (see setupKnob). The star clip-path lives on the pseudo-element
+     so it never clips the pointer or the numbers. */
+  .knob {
+    width: 64px; height: 64px; border-radius: 50%; position: relative; cursor: ns-resize;
+    background: radial-gradient(circle at 50% 38%, #4a4d51, #26282b 70%, #141518 100%);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+  }
+  /* The raised star-shaped body (sits just inside the round rim) */
+  .knob::before {
+    content: ""; position: absolute; inset: 5px; z-index: 0;
+    background: radial-gradient(circle at 50% 36%, #65696e, #34363a 65%, #1b1d20 100%);
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));
+    clip-path: polygon(
+      50% 0%, 66.1% 16.7%, 89.1% 18.8%, 86.1% 41.8%, 98.7% 61.1%,
+      78.9% 73.1%, 71.7% 95.1%, 50% 87%, 28.3% 95.1%, 21.1% 73.1%,
+      1.3% 61.1%, 13.9% 41.8%, 10.9% 18.8%, 34% 16.7%
+    );
+  }
+  /* The smooth raised centre cap, with a concentric ring groove */
+  .knob::after {
+    content: ""; position: absolute; inset: 22px; border-radius: 50%; z-index: 1;
+    background: radial-gradient(circle at 50% 34%, #76797e, #3c3f43 58%, #202226 100%);
+    box-shadow:
+      inset 0 0 0 2px rgba(0,0,0,0.35),
+      inset 0 2px 3px rgba(255,255,255,0.28),
+      inset 0 -3px 5px rgba(0,0,0,0.6);
+  }
+  /* The small 0..10 numbers printed around each knob */
+  .knob .tick {
+    position: absolute; font-size: 10px; color: #eef3f5; width: 12px;
+    text-align: center; margin-left: -6px; margin-top: -6px;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.4);
+  }
+
+  /* Rotary frequency switches, styled dark to sit on the plate */
+  select.rotary {
+    background: #1b1c1f; color: #eef3f5; border: 3px solid #cfd4d8;
+    border-radius: 6px; padding: 9px 4px; font-size: 14px; width: 74px;
+    text-align: center; text-align-last: center; cursor: pointer;
+    box-shadow: 0 0 0 1px #8a9096, 0 3px 6px rgba(0,0,0,0.4);
+  }
+
+  /* Power / EQ-in cluster: red lamp + bat-handle toggle */
+  .power { position: absolute; left: 54px; top: 14%; transform: translateY(-14px); width: auto; align-items: center; justify-content: flex-start; gap: 6px; }
+  /* Vintage Fender-style jewel lamp: faceted red gem in a chrome bezel */
+  .lamp {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 3px solid #c7ccd0;
+    background:
+      radial-gradient(circle at 40% 30%, rgba(255,255,255,0.85), rgba(255,255,255,0) 22%),
+      conic-gradient(from 10deg, rgba(255,255,255,0.18), rgba(0,0,0,0.14) 25%, rgba(255,255,255,0.16) 50%, rgba(0,0,0,0.14) 75%, rgba(255,255,255,0.18)),
+      radial-gradient(circle at 50% 52%, #c23138, #86131a 60%, #4e0a0e 92%);
+    box-shadow: 0 0 0 1px #70767c, inset 0 1px 2px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5);
+    transition: background 0.1s, box-shadow 0.1s;
+  }
+  .lamp.on {
+    background:
+      radial-gradient(circle at 40% 28%, rgba(255,255,255,0.95), rgba(255,255,255,0) 24%),
+      conic-gradient(from 10deg, rgba(255,255,255,0.28), rgba(0,0,0,0.12) 25%, rgba(255,255,255,0.24) 50%, rgba(0,0,0,0.12) 75%, rgba(255,255,255,0.28)),
+      radial-gradient(circle at 50% 52%, #ff8f8f, #ff2630 46%, #b60c15 86%);
+    box-shadow: 0 0 0 1px #70767c, 0 0 13px 3px rgba(255,45,45,0.85);
+  }
+  .toggle {
+    width: 30px; height: 44px; border-radius: 6px; padding: 0;
+    background: #17181b; border: 2px solid #cfd4d8; cursor: pointer;
+    position: relative; box-shadow: 0 0 0 1px #8a9096, 0 3px 6px rgba(0,0,0,0.4);
+  }
+  .toggle .bat {
+    position: absolute; left: 50%; width: 13px; height: 22px; margin-left: -6.5px;
+    border-radius: 4px; top: 18px;   /* down = OFF */
+    background: linear-gradient(#5a5d62, #202225);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.6);
+    transition: top 0.12s ease;
+  }
+  .toggle.on .bat { top: 2px; }       /* up = ON */
+
+  /* The teaching hint + reset button under the graph */
+  .hint {
+    max-width: 820px; margin-top: 12px; font-size: 13px; line-height: 1.5;
+    color: #5a626b; text-align: center;
+  }
+  .hint b { color: #1f6fd6; font-weight: 600; }
+  #reset {
+    display: inline-block; margin-left: 8px; padding: 4px 12px;
+    background: #ffffff; color: #2b2f33; border: 1px solid #c4c9cf;
+    border-radius: 6px; font-size: 12px; cursor: pointer;
+  }
+  #reset:hover { background: #f1f3f5; }
+
+  @media (prefers-color-scheme: dark) {
+    body { background: #16181b; color: #d7dbdf; }
+    h1 { color: #eef1f3; }
+    .subtitle { color: #9aa1a8; }
+    #curve { background: #1c1f23; border-color: #3a4046; }
+    .notch { background: #16181b; }
+    .hint { color: #9aa1a8; }
+  }
+</style>
+</head>
+<body>
+  <h1>Pultec EQP-1A Visualizer</h1>
+  <div class="subtitle">Turn the knobs — the curve shows the frequency response. (An approximation for learning, not a measured model.)</div>
+
+  <canvas id="curve" width="820" height="260"></canvas>
+
+  <div class="hint">
+    Try the <b>Pultec bass trick</b>: set Low Frequency to 60&nbsp;Hz, then turn up
+    <b>both</b> Low Boost and Low Atten — watch the bump at the bottom and the dip just above it.
+    <button id="reset">Reset all</button>
+  </div>
+
+  <div class="panel">
+    <!-- Corner rack screws -->
+    <span class="screw tl"></span><span class="screw tr"></span>
+    <span class="screw bl"></span><span class="screw br"></span>
+
+    <!-- Round-ended rack-mount slots on the left/right edges -->
+    <span class="notch l1"></span><span class="notch l2"></span>
+    <span class="notch r1"></span><span class="notch r2"></span>
+
+    <!-- Engraved maker's label on the left -->
+    <div class="brand">PULTEC<br><span>PROGRAM EQUALIZER</span><br><span>EQP-1A</span></div>
+
+    <!-- ===== TOP ROW: the four boost/atten knobs + high-atten selector ===== -->
+    <div class="row top">
+      <div class="control">
+        <div class="label">Boost</div>
+        <div class="knob" id="lowBoost" data-value="0"></div>
+        <div class="readout" id="lowBoostOut">0.0</div>
+      </div>
+      <div class="grouptag">LOW</div>
+      <div class="control">
+        <div class="label">Atten</div>
+        <div class="knob" id="lowAtten" data-value="0"></div>
+        <div class="readout" id="lowAttenOut">0.0</div>
+      </div>
+      <div class="control">
+        <div class="label">Boost</div>
+        <div class="knob" id="highBoost" data-value="0"></div>
+        <div class="readout" id="highBoostOut">0.0</div>
+      </div>
+      <div class="grouptag">HIGH</div>
+      <div class="control">
+        <div class="label">Atten</div>
+        <div class="knob" id="highAtten" data-value="0"></div>
+        <div class="readout" id="highAttenOut">0.0</div>
+      </div>
+      <div class="control">
+        <div class="label">Atten Sel</div>
+        <select id="attenFreq" class="rotary">
+          <option value="5000">5 KCS</option>
+          <option value="10000">10 KCS</option>
+          <option value="20000" selected>20 KCS</option>
+        </select>
+      </div>
+      <div class="control power">
+        <span class="lamp on" id="lamp"></span>
+        <button class="toggle on" id="power" title="EQ in / out"><span class="bat"></span></button>
+        <div class="readout" id="powerOut">ON</div>
+      </div>
+    </div>
+
+    <!-- ===== BOTTOM ROW: frequency selectors + bandwidth ===== -->
+    <div class="row bottom">
+      <div class="control">
+        <div class="label">Low Frequency <span class="unit">CPS</span></div>
+        <select id="lowFreq" class="rotary">
+          <option value="20">20</option>
+          <option value="30">30</option>
+          <option value="60" selected>60</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div class="control">
+        <div class="label">Bandwidth</div>
+        <div class="knob" id="bandwidth" data-value="3"></div>
+        <div class="readout" id="bandwidthOut">sharp</div>
+      </div>
+      <div class="control">
+        <div class="label">High Frequency <span class="unit">KCS</span></div>
+        <select id="highFreq" class="rotary">
+          <option value="3000">3</option>
+          <option value="4000">4</option>
+          <option value="5000">5</option>
+          <option value="8000">8</option>
+          <option value="10000" selected>10</option>
+          <option value="12000">12</option>
+          <option value="16000">16</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+<script>
+// =====================================================================
+//  Pultec EQP-1A Visualizer
+//  One file, plain JavaScript. Read top-to-bottom.
+//
+//  The plan:
+//   1. Keep the current knob/selector values in one object called `state`.
+//   2. A set of small math functions turn those values into a gain (in dB)
+//      at any given frequency.
+//   3. We draw the whole curve by asking "what is the gain?" at many
+//      frequencies across the audible range and joining the dots.
+// =====================================================================
+
+// ---- 1. The audible frequency range we draw (20 Hz up to 20 kHz) ----
+var MIN_FREQ = 20;
+var MAX_FREQ = 20000;
+var MAX_DB   = 20;   // top/bottom of the vertical scale on the graph
+
+// ---- The live state of every control ----
+var state = {
+  lowFreq:   60,     // Hz, from the Low Frequency dropdown
+  lowBoost:  0,      // 0..10 from the knob
+  lowAtten:  0,      // 0..10
+  highFreq:  10000,  // Hz, high boost centre
+  highBoost: 0,      // 0..10
+  bandwidth: 3,      // 0..10  (0 = sharp/narrow, 10 = broad/wide)
+  attenFreq: 20000,  // Hz, high attenuation shelf
+  highAtten: 0,      // 0..10
+  on:        true    // EQ in (true) or bypassed/out (false)
+};
+
+// ---------------------------------------------------------------------
+//  2. THE EQ MATH
+//  Each helper returns how many dB that band adds at frequency f.
+//  These are simplified shapes — enough to look and behave like a Pultec,
+//  including its famous low-end "boost + atten = that smiley curve" trick.
+// ---------------------------------------------------------------------
+
+// Turn a 0..10 knob into decibels. `maxDb` is the most that knob can do.
+function knobToDb(knob, maxDb) {
+  return (knob / 10) * maxDb;
+}
+
+// --- Small building blocks (each returns a number from 0..1) ---
+// A low shelf: 1 at the bottom, fading to 0 as frequency rises past corner C.
+function shelfLow(f, C) { return 1 / (1 + Math.pow(f / C, 2)); }
+// A high shelf: 0 at the bottom, rising to 1 as frequency climbs past corner C.
+// `order` controls how steeply it climbs (2.2 roughly matches the EQP-1A high cut).
+function shelfHigh(f, C, order) { return 1 / (1 + Math.pow(C / f, order)); }
+// A bell shape centred on fc. `width` is in octaves (small = sharp, big = broad).
+function bell(f, fc, width) {
+  var octaves = Math.log(f / fc) / Math.log(2);
+  return Math.exp(-(octaves * octaves) / (2 * width * width));
+}
+
+// --- The four Pultec bands. Each returns dB at frequency f. ---
+// These constants were tuned to match the response curves in the EQP-1A manual.
+
+// LOW BOOST: a gentle low shelf with a slight resonant hump near the chosen
+// frequency. That little hump is what pokes above the cut to make the "bass bump".
+function lowBoostBand(f) {
+  var g = knobToDb(state.lowBoost, 16);
+  var corner = state.lowFreq * 2.5;
+  return g * (shelfLow(f, corner) + 0.22 * bell(f, state.lowFreq * 1.2, 0.6));
+}
+// LOW ATTEN: a broader low shelf cut, acting a little higher than the boost.
+// Boost bump + this cut just above = the famous Pultec low-end dip.
+function lowAttenBand(f) {
+  var g = knobToDb(state.lowAtten, 16);
+  return -g * shelfLow(f, state.lowFreq * 4.5);
+}
+// HIGH BOOST: a bell at the chosen frequency. Bandwidth makes it sharp or broad;
+// a sharp setting also reaches a little higher, just like the real unit.
+function highBoostBand(f) {
+  var width = 0.35 + state.bandwidth * 0.12;              // 0 = sharp, 10 = broad
+  var g = knobToDb(state.highBoost, 12) * (1 + 0.25 * (1 - state.bandwidth / 10));
+  return g * bell(f, state.highFreq, width);
+}
+// HIGH ATTEN (high cut): a high shelf that pulls the top end down.
+function highAttenBand(f) {
+  var g = knobToDb(state.highAtten, 18);
+  return -g * shelfHigh(f, state.attenFreq * 0.8, 2.2);
+}
+
+// The complete Pultec response: add every band together at frequency f.
+// When the EQ is switched out (bypassed), the response is flat (0 dB).
+function totalGainDb(f) {
+  if (!state.on) return 0;
+  return lowBoostBand(f) + lowAttenBand(f) + highBoostBand(f) + highAttenBand(f);
+}
+
+// The same EQ expressed as a list of filter specs for the course-level audio
+// engine (see index.html). Mirrors the bands above; octavesToQ() is defined in
+// section 7. Empty list = EQ out (dry).
+window.audioParams = function () {
+  if (!state.on) return [];
+  var lowBoostDb = knobToDb(state.lowBoost, 16);
+  return [
+    { type: "lowshelf",  freq: state.lowFreq * 2.5,   gain: lowBoostDb },
+    { type: "peaking",   freq: state.lowFreq * 1.2,   gain: 0.22 * lowBoostDb, q: octavesToQ(0.6) },
+    { type: "lowshelf",  freq: state.lowFreq * 4.5,   gain: -knobToDb(state.lowAtten, 16) },
+    { type: "peaking",   freq: state.highFreq,        gain: knobToDb(state.highBoost, 12) * (1 + 0.25 * (1 - state.bandwidth / 10)), q: octavesToQ(0.35 + state.bandwidth * 0.12) },
+    { type: "highshelf", freq: state.attenFreq * 0.8, gain: -knobToDb(state.highAtten, 18) }
+  ];
+};
+
+// ---------------------------------------------------------------------
+//  3. DRAWING THE CURVE
+// ---------------------------------------------------------------------
+var canvas = document.getElementById("curve");
+var ctx = canvas.getContext("2d");
+var W = canvas.width;
+var H = canvas.height;
+
+// Convert a frequency to an x pixel. We use a log scale so bass gets as
+// much room as treble (that's how we hear, and how EQ graphs are drawn).
+function freqToX(f) {
+  var minL = Math.log10(MIN_FREQ);
+  var maxL = Math.log10(MAX_FREQ);
+  return ((Math.log10(f) - minL) / (maxL - minL)) * W;
+}
+
+// Convert a dB value to a y pixel (0 dB sits in the middle).
+function dbToY(db) {
+  return H / 2 - (db / MAX_DB) * (H / 2);
+}
+
+// Grid/label colors adapt to the OS light/dark setting.
+function theme() {
+  return matchMedia("(prefers-color-scheme: dark)").matches
+    ? { minor: "#2a2e33", major: "#3a4046", zero: "#525960", nzh: "#2a2e33", label: "#9aa1a8" }
+    : { minor: "#eceff2", major: "#cfd3d7", zero: "#b4bac1", nzh: "#e4e7ea", label: "#8a9099" };
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  var T = theme();
+
+  // --- Grid: logarithmic frequency lines (analyzer style) ---
+  // Thin minor lines at every 1..9 in each decade, bolder lines at the decade
+  // marks (100, 1k, 10k), and labels at a readable subset.
+  ctx.font = "10px sans-serif";
+  var labelAt = { 20:1, 30:1, 50:1, 100:1, 200:1, 300:1, 500:1,
+                  1000:1, 2000:1, 3000:1, 5000:1, 10000:1, 20000:1 };
+  for (var exp = 1; exp <= 4; exp++) {
+    for (var mult = 1; mult <= 9; mult++) {
+      var f = mult * Math.pow(10, exp);
+      if (f < MIN_FREQ || f > MAX_FREQ) continue;
+      var x = freqToX(f);
+      var isDecade = (mult === 1);                 // 10, 100, 1000, 10000
+      ctx.strokeStyle = isDecade ? T.major : T.minor;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      if (labelAt[f]) {
+        ctx.fillStyle = T.label;
+        // The last label (20k) sits at the right edge, so shift it left to fit.
+        var labelX = (f === MAX_FREQ) ? x - 20 : x + 2;
+        ctx.fillText(f >= 1000 ? (f / 1000) + "k" : f, labelX, H - 4);
+      }
+    }
+  }
+
+  // --- Grid: horizontal dB lines, with the 0 dB line darker ---
+  ctx.fillStyle = T.label;
+  for (var db = -MAX_DB; db <= MAX_DB; db += 5) {
+    var y = dbToY(db);
+    ctx.strokeStyle = (db === 0) ? T.zero : T.nzh;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    // Labels: top one sits below its line (so it isn't clipped); bottom one is
+    // skipped so it doesn't collide with the "20" frequency label in the corner.
+    if (db === -MAX_DB) continue;
+    var ty = (db === MAX_DB) ? y + 11 : y - 3;
+    ctx.fillText((db > 0 ? "+" : "") + db, 3, ty);
+  }
+
+  // --- The response curve itself ---
+  ctx.strokeStyle = "#4a90d9";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (var px = 0; px <= W; px++) {
+    // Work out which frequency this pixel represents, then its gain.
+    var frac = px / W;
+    var f = Math.pow(10, Math.log10(MIN_FREQ) + frac * (Math.log10(MAX_FREQ) - Math.log10(MIN_FREQ)));
+    var y = dbToY(totalGainDb(f));
+    if (px === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+
+  // When embedded in the course, send this unit's EQ to the course audio engine.
+  if (window.self !== window.top) {
+    window.parent.postMessage({ type: "eqParams", params: window.audioParams() }, "*");
+  }
+}
+
+// ---------------------------------------------------------------------
+//  4. MAKING THE KNOBS TURN
+//  A knob holds a value 0..10. Dragging up adds, dragging down subtracts.
+//  Each knob gets a small inner "pointer" element that we rotate to show
+//  its position, then we update the state and redraw the curve.
+// ---------------------------------------------------------------------
+
+// Each control registers a "reset me" function here, used by the Reset button.
+var resetters = [];
+
+// Set up one knob. `id` matches the element and the state field.
+function setupKnob(id, outId, stateKey, formatFn) {
+  var knob = document.getElementById(id);
+  var out = document.getElementById(outId);
+  var defaultValue = knob.dataset.value;   // remember its starting position
+
+  // Add the pointer: a short silver tick that sits in the round outer rim
+  // (not over the star body) and rotates to show the value.
+  var pointer = document.createElement("div");
+  pointer.style.cssText =
+    "position:absolute;left:50%;top:-4px;width:3px;height:9px;margin-left:-1.5px;" +
+    "background:linear-gradient(#ffffff,#c2c7cc);border-radius:2px;" +
+    "box-shadow:0 0 1px rgba(0,0,0,0.6);transform-origin:50% 36px;z-index:2;";
+  knob.appendChild(pointer);
+
+  // Print the 0..10 number ring around the knob (like the real stepped scale).
+  for (var i = 0; i <= 10; i++) {
+    var a = (-140 + i * 28) * Math.PI / 180;   // same sweep as the pointer
+    var r = 38, cx = 32, cy = 32;              // knob centre is 32,32 (64px knob)
+    var tick = document.createElement("div");
+    tick.className = "tick";
+    tick.textContent = i;
+    tick.style.left = (cx + r * Math.sin(a)) + "px";
+    tick.style.top  = (cy - r * Math.cos(a)) + "px";
+    knob.appendChild(tick);
+  }
+
+  function render() {
+    var value = Number(knob.dataset.value);
+    var angle = -140 + (value / 10) * 280;
+    pointer.style.transform = "rotate(" + angle + "deg)";
+    out.textContent = formatFn ? formatFn(value) : value.toFixed(1);
+    state[stateKey] = value;
+    draw();
+  }
+
+  // --- Dragging logic ---
+  var dragging = false;
+  var startY = 0;
+  var startValue = 0;
+
+  knob.addEventListener("mousedown", function (e) {
+    dragging = true;
+    startY = e.clientY;
+    startValue = Number(knob.dataset.value);
+    e.preventDefault();
+  });
+  window.addEventListener("mousemove", function (e) {
+    if (!dragging) return;
+    var delta = (startY - e.clientY) / 26;        // 26 px of drag = 1 step (stiffer)
+    var value = Math.max(0, Math.min(10, startValue + delta));
+    knob.dataset.value = value;
+    render();
+  });
+  window.addEventListener("mouseup", function () { dragging = false; });
+
+  // Register how to reset this knob, then draw its starting position.
+  resetters.push(function () { knob.dataset.value = defaultValue; render(); });
+  render();   // draw its starting position
+}
+
+// Create every knob. The Bandwidth knob shows words instead of a number.
+setupKnob("lowBoost",  "lowBoostOut",  "lowBoost");
+setupKnob("lowAtten",  "lowAttenOut",  "lowAtten");
+setupKnob("highBoost", "highBoostOut", "highBoost");
+setupKnob("highAtten", "highAttenOut", "highAtten");
+setupKnob("bandwidth", "bandwidthOut", "bandwidth", function (v) {
+  if (v < 3.5) return "sharp";
+  if (v > 6.5) return "broad";
+  return "medium";
+});
+
+// ---------------------------------------------------------------------
+//  5. THE DROPDOWN SELECTORS
+// ---------------------------------------------------------------------
+function setupSelect(id, stateKey) {
+  var sel = document.getElementById(id);
+  var defaultValue = sel.value;
+  sel.addEventListener("change", function () {
+    state[stateKey] = Number(sel.value);
+    draw();
+  });
+  resetters.push(function () { sel.value = defaultValue; state[stateKey] = Number(defaultValue); });
+}
+setupSelect("lowFreq",   "lowFreq");
+setupSelect("highFreq",  "highFreq");
+setupSelect("attenFreq", "attenFreq");
+
+// ---------------------------------------------------------------------
+//  6. THE EQ IN / OUT SWITCH (with its red lamp)
+//  Flipping it out bypasses the EQ, so the curve goes flat.
+// ---------------------------------------------------------------------
+(function setupPower() {
+  var toggle = document.getElementById("power");
+  var lamp   = document.getElementById("lamp");
+  var out    = document.getElementById("powerOut");
+
+  function render() {
+    toggle.classList.toggle("on", state.on);
+    lamp.classList.toggle("on", state.on);
+    out.textContent = state.on ? "ON" : "OFF";
+    draw();
+  }
+  toggle.addEventListener("click", function () { state.on = !state.on; render(); });
+  resetters.push(function () { state.on = true; render(); });
+  render();
+})();
+
+// ---- The Reset button: put every control back to its starting value ----
+document.getElementById("reset").addEventListener("click", function () {
+  resetters.forEach(function (reset) { reset(); });
+  draw();
+});
+
+// A bandwidth in octaves → a filter "Q" (how sharp a bell is). Used by
+// window.audioParams() to describe this unit's EQ to the course audio engine.
+function octavesToQ(octaves) {
+  return 1 / (2 * Math.sinh((Math.LN2 / 2) * octaves));
+}
+
+// ---- First draw so the graph isn't empty on load ----
+draw();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+
+// ---- "Faceplate-only" mode (optional ?faceplate flag): hide the chart, hint,
+//      and page headings so only the hardware panel shows. ----
+if (location.search.indexOf("faceplate") !== -1) {
+  ["h1", ".subtitle", "#curve", ".hint"].forEach(function (sel) {
+    var el = document.querySelector(sel);
+    if (el) el.style.display = "none";
+  });
+  document.body.style.padding = "12px";
+}
+
+// ---- When embedded in the course (iframe): hide the page's own headings/hint
+//      so only the chart + faceplate show (the course supplies the title/text). ----
+if (window.self !== window.top) {
+  ["h1", ".subtitle", ".hint"].forEach(function (sel) {
+    var el = document.querySelector(sel);
+    if (el) el.style.display = "none";
+  });
+  document.body.style.padding = "10px 12px";
+}
+
+// The course may ask us to (re)send our EQ — e.g. when the audio first starts.
+window.addEventListener("message", function (e) {
+  if (e.data && e.data.type === "requestEq" && window.self !== window.top) {
+    window.parent.postMessage({ type: "eqParams", params: window.audioParams() }, "*");
+  }
+});
+</script>
+<script src="logo.js"></script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What an EQ does — simple demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0; background: #ffffff; color: #2b2f33;
+    font-family: 'Figtree', -apple-system, Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 12px 48px;
+  }
+  h1 { font-weight: 600; font-size: 20px; letter-spacing: 0.5px; margin: 0 0 4px; }
+  .subtitle { color: #7a828b; font-size: 13px; margin-bottom: 20px; }
+  #curve { background: #fff; border: 1px solid #c4c9cf; border-radius: 8px; display: block; max-width: 100%; }
+
+  /* A simple generic "unit" */
+  .unit {
+    margin-top: 14px; width: 860px; max-width: 100%; box-sizing: border-box;
+    display: flex; gap: 20px; align-items: center; justify-content: space-around;
+    background: linear-gradient(180deg, #33373b, #23262a);
+    border-radius: 10px; padding: 20px 30px;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.1), 0 3px 10px rgba(0,0,0,0.09);
+  }
+  .control { display: flex; flex-direction: column; align-items: center; width: 92px; }
+  .control .label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #cdd1d5; margin-bottom: 12px; }
+  .control .readout { font-size: 12px; color: #7fd4b0; margin-top: 12px; font-variant-numeric: tabular-nums; }
+
+  .knob {
+    width: 70px; height: 70px; border-radius: 50%; position: relative; cursor: ns-resize;
+    background: radial-gradient(circle at 50% 34%, #51565b, #303438 60%, #1c1f22 100%);
+    box-shadow: 0 0 0 2px #15171a, inset 0 2px 3px rgba(255,255,255,0.15), 0 3px 6px rgba(0,0,0,0.5);
+  }
+  .knob .tick { position: absolute; font-size: 9px; color: #8b9196; width: 20px; text-align: center; margin-left: -10px; margin-top: -6px; }
+
+  /* On/off filter toggle (fixed frequency) */
+  .toggle {
+    width: 62px; height: 30px; border-radius: 15px; cursor: pointer;
+    border: 1px solid #15171a; background: #2a2d30; color: #aeb3b7;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .toggle.on { background: #2aa775; color: #fff; border-color: #1f7d58; box-shadow: 0 0 8px rgba(42,167,117,0.6); }
+  @media (prefers-color-scheme: dark) {
+    body { background: #16181b; color: #d7dbdf; }
+    h1 { color: #eef1f3; }
+    .subtitle { color: #9aa1a8; }
+    #curve { background: #1c1f23; border-color: #3a4046; }
+  }
+</style>
+</head>
+<body>
+  <h1>What an EQ does</h1>
+  <div class="subtitle">One band. Move it around, boost or cut, and change how wide it is.</div>
+
+  <canvas id="curve" width="820" height="260"></canvas>
+
+  <div class="unit">
+    <div class="control">
+      <div class="label">High-Pass</div>
+      <button class="toggle" id="hpfBtn">OFF</button>
+      <div class="readout">80 Hz</div>
+    </div>
+    <div class="control">
+      <div class="label">Frequency</div>
+      <div class="knob" id="freq"></div>
+      <div class="readout" id="freqOut">1.0 kHz</div>
+    </div>
+    <div class="control">
+      <div class="label">Gain</div>
+      <div class="knob" id="gain"></div>
+      <div class="readout" id="gainOut">+6.0 dB</div>
+    </div>
+    <div class="control">
+      <div class="label">Width</div>
+      <div class="knob" id="width"></div>
+      <div class="readout" id="widthOut">medium</div>
+    </div>
+    <div class="control">
+      <div class="label">High Shelf</div>
+      <button class="toggle" id="hsBtn">OFF</button>
+      <div class="readout">10 kHz</div>
+    </div>
+  </div>
+
+<script>
+// =====================================================================
+//  A deliberately tiny EQ: ONE band that can move (frequency), go up or
+//  down (gain = boost/cut), and get wider or narrower (width = slope).
+// =====================================================================
+var MIN_FREQ = 20, MAX_FREQ = 20000, MAX_DB = 20;
+
+var state = { freq: 1000, gain: 6, width: 1.0, hpfOn: false, hsOn: false };   // width in octaves
+
+// One bell-shaped band. Positive gain boosts, negative cuts; width sets how wide.
+function bellDb(f) {
+  var o = Math.log(f / state.freq) / Math.log(2);
+  return state.gain * Math.exp(-(o * o) / (2 * state.width * state.width));
+}
+// Fixed on/off filters: 80 Hz high-pass, and a +10 dB high shelf at 10 kHz.
+function hpfDb(f) { return state.hpfOn ? -10 * Math.log10(1 + Math.pow(80 / f, 4)) : 0; }
+function highShelfDb(f) { return state.hsOn ? 10 * (1 / (1 + Math.pow(10000 / f, 2))) : 0; }
+
+function totalDb(f) { return bellDb(f) + hpfDb(f) + highShelfDb(f); }
+
+// The same EQ as a list of filter specs for the course-level audio engine
+// (see index.html).
+window.audioParams = function () {
+  var arr = [];
+  if (state.hpfOn) arr.push({ type: "highpass", freq: 80, q: 0.707 });
+  arr.push({ type: "peaking", freq: state.freq, gain: state.gain, q: 1 / Math.max(0.25, state.width) });
+  if (state.hsOn) arr.push({ type: "highshelf", freq: 10000, gain: 10 });
+  return arr;
+};
+
+// ---- Drawing (shared analyzer-style grid) ----
+var canvas = document.getElementById("curve"), ctx = canvas.getContext("2d");
+var W = canvas.width, H = canvas.height;
+function freqToX(f) { var lo = Math.log10(MIN_FREQ), hi = Math.log10(MAX_FREQ); return ((Math.log10(f) - lo) / (hi - lo)) * W; }
+function dbToY(db) { return H / 2 - (db / MAX_DB) * (H / 2); }
+
+function theme() {
+  return matchMedia("(prefers-color-scheme: dark)").matches
+    ? { minor: "#2a2e33", major: "#3a4046", zero: "#525960", nzh: "#2a2e33", label: "#9aa1a8" }
+    : { minor: "#eceff2", major: "#cfd3d7", zero: "#b4bac1", nzh: "#e4e7ea", label: "#8a9099" };
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  var T = theme();
+  ctx.font = "10px sans-serif";
+  var labelAt = { 20:1,30:1,50:1,100:1,200:1,300:1,500:1,1000:1,2000:1,3000:1,5000:1,10000:1,20000:1 };
+  for (var exp = 1; exp <= 4; exp++) {
+    for (var mult = 1; mult <= 9; mult++) {
+      var f = mult * Math.pow(10, exp);
+      if (f < MIN_FREQ || f > MAX_FREQ) continue;
+      var x = freqToX(f);
+      ctx.strokeStyle = (mult === 1) ? T.major : T.minor;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      if (labelAt[f]) { ctx.fillStyle = T.label; ctx.fillText(f >= 1000 ? (f / 1000) + "k" : f, (f === MAX_FREQ) ? x - 20 : x + 2, H - 4); }
+    }
+  }
+  ctx.fillStyle = T.label;
+  for (var db = -MAX_DB; db <= MAX_DB; db += 5) {
+    var y = dbToY(db);
+    ctx.strokeStyle = (db === 0) ? T.zero : T.nzh;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    if (db === -MAX_DB) continue;
+    ctx.fillText((db > 0 ? "+" : "") + db, 3, (db === MAX_DB) ? y + 11 : y - 3);
+  }
+  ctx.strokeStyle = "#5cb85a"; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (var px = 0; px <= W; px++) {
+    var frac = px / W;
+    var f2 = Math.pow(10, Math.log10(MIN_FREQ) + frac * (Math.log10(MAX_FREQ) - Math.log10(MIN_FREQ)));
+    var y2 = dbToY(totalDb(f2));
+    if (px === 0) ctx.moveTo(px, y2); else ctx.lineTo(px, y2);
+  }
+  ctx.stroke();
+
+  // When embedded in the course, send this unit's EQ to the course audio engine.
+  if (window.self !== window.top) {
+    window.parent.postMessage({ type: "eqParams", params: window.audioParams() }, "*");
+  }
+}
+
+// ---- Knobs (drag up/down). Each works in a 0..1 "fraction" mapped onto a
+//      -140..140 degree sweep; the caller converts fraction <-> real value. ----
+function setupKnob(id, outId, getFrac, setFrac, readText, sensitivity) {
+  var knob = document.getElementById(id), out = document.getElementById(outId);
+  var pointer = document.createElement("div");
+  pointer.style.cssText = "position:absolute;left:50%;top:5px;width:3px;height:16px;margin-left:-1.5px;" +
+    "background:#e9ecef;border-radius:2px;transform-origin:50% 30px;z-index:1;";
+  knob.appendChild(pointer);
+
+  function render() {
+    pointer.style.transform = "rotate(" + (-140 + getFrac() * 280) + "deg)";
+    out.textContent = readText();
+    draw();
+  }
+  var dragging = false, startY = 0, startFrac = 0;
+  knob.addEventListener("mousedown", function (e) { dragging = true; startY = e.clientY; startFrac = getFrac(); e.preventDefault(); });
+  window.addEventListener("mousemove", function (e) {
+    if (!dragging) return;
+    setFrac(Math.max(0, Math.min(1, startFrac + (startY - e.clientY) / sensitivity)));
+    render();
+  });
+  window.addEventListener("mouseup", function () { dragging = false; });
+  render();
+}
+
+// A knob whose value maps linearly from the 0..1 fraction.
+function linKnob(id, outId, key, min, max, fmt) {
+  setupKnob(id, outId,
+    function () { return (state[key] - min) / (max - min); },
+    function (frac) { state[key] = min + frac * (max - min); },
+    function () { return fmt(state[key]); }, 220);
+}
+// A knob whose value maps logarithmically (for frequency).
+function logKnob(id, outId, key, min, max, fmt) {
+  var lmin = Math.log10(min), lmax = Math.log10(max);
+  setupKnob(id, outId,
+    function () { return (Math.log10(state[key]) - lmin) / (lmax - lmin); },
+    function (frac) { state[key] = Math.pow(10, lmin + frac * (lmax - lmin)); },
+    function () { return fmt(state[key]); }, 220);
+}
+
+var fmtFreq = function (v) { return v >= 1000 ? (v / 1000).toFixed(1) + " kHz" : Math.round(v) + " Hz"; };
+var fmtGain = function (v) { return (v > 0 ? "+" : "") + v.toFixed(1) + " dB"; };
+var fmtWidth = function (v) { return v < 0.6 ? "narrow" : (v > 1.8 ? "wide" : "medium"); };
+
+logKnob("freq", "freqOut", "freq", 20, 20000, fmtFreq);
+linKnob("gain", "gainOut", "gain", -18, 18, fmtGain);
+linKnob("width", "widthOut", "width", 0.25, 3, fmtWidth);
+
+// On/off filter toggles (fixed frequencies).
+function setupToggle(id, key) {
+  var btn = document.getElementById(id);
+  btn.addEventListener("click", function () {
+    state[key] = !state[key];
+    btn.classList.toggle("on", state[key]);
+    btn.textContent = state[key] ? "ON" : "OFF";
+    draw();
+  });
+}
+setupToggle("hpfBtn", "hpfOn");
+setupToggle("hsBtn", "hsOn");
+
+draw();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+
+// When embedded in the course (iframe), hide the page's own headings.
+if (window.self !== window.top) {
+  ["h1", ".subtitle"].forEach(function (sel) { var el = document.querySelector(sel); if (el) el.style.display = "none"; });
+  document.body.style.padding = "10px 12px";
+}
+
+// The course may ask us to (re)send our EQ — e.g. when the audio first starts.
+window.addEventListener("message", function (e) {
+  if (e.data && e.data.type === "requestEq" && window.self !== window.top) {
+    window.parent.postMessage({ type: "eqParams", params: window.audioParams() }, "*");
+  }
+});
+</script>
+<script src="logo.js"></script>
+</body>
+</html>

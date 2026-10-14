@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neve 1073 — EQ section</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0; background: #ffffff; color: #2b2f33;
+    font-family: 'Figtree', -apple-system, Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 12px 48px;
+  }
+  h1 { font-weight: 600; font-size: 20px; letter-spacing: 0.5px; margin: 0 0 4px; }
+  .subtitle { color: #7a828b; font-size: 13px; margin-bottom: 20px; }
+
+  #curve {
+    background: #fff; border: 1px solid #c4c9cf; border-radius: 8px; display: block; max-width: 100%;
+  }
+
+  /* ---- Black Neve faceplate ---- */
+  .panel {
+    position: relative; margin-top: 14px; width: 860px; max-width: 100%;
+    box-sizing: border-box;
+    background: linear-gradient(180deg, #353b3e, #24282b);
+    border-radius: 5px; padding: 20px 18px;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.1), 0 3px 10px rgba(0,0,0,0.09);
+    display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  }
+  .screw {
+    position: absolute; width: 11px; height: 11px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #d6d9dc, #7c8084 60%, #4e5255);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5); transform: translateY(-50%);
+  }
+  .screw.tl { left: 16px; top: 28%; } .screw.tr { right: 16px; top: 28%; }
+  .screw.bl { left: 16px; top: 72%; } .screw.br { right: 16px; top: 72%; }
+
+  .control { display: flex; flex-direction: column; align-items: center; width: 132px; }
+  .control .sym { color: #e6e8ea; height: 16px; margin-bottom: 8px; }
+  .control .sym svg { vertical-align: middle; }
+  .control .name { color: #b9bdc1; font-size: 10px; letter-spacing: 0.8px; margin-top: 6px; text-transform: uppercase; }
+  .control .unit { color: #8a9099; font-size: 9px; letter-spacing: 1px; margin-top: 1px; }
+
+  /* Concentric Neve knob: coloured SKIRT (outer) + knurled grey INNER knob.
+     White pointers; gain dots, +/-, and frequency numbers are added by JS. */
+  .cknob {
+    width: 96px; height: 96px; border-radius: 50%; position: relative; cursor: ns-resize;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.45), 0 4px 9px rgba(0,0,0,0.5), inset 0 2px 3px rgba(255,255,255,0.22);
+  }
+  .cknob.silver { background: radial-gradient(circle at 50% 28%, #e2e5e8, #b6babe 52%, #8a8e92 82%, #6c7074 100%); }
+  .cknob.blue   { background: radial-gradient(circle at 50% 28%, #5a86c3, #335c97 52%, #1f4076 82%, #163460 100%); }
+  .cknob .inner {
+    position: absolute; inset: 23px; border-radius: 50%; cursor: ns-resize; z-index: 2;
+    background: radial-gradient(circle at 50% 34%, #d3d6d9, #a9adb1 55%, #7f8388 100%);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4), inset 0 2px 3px rgba(255,255,255,0.45), inset 0 -3px 5px rgba(0,0,0,0.35);
+  }
+  .cknob.allblue .inner { background: radial-gradient(circle at 50% 34%, #6f9bd6, #4069ab 55%, #244a86 100%); }
+  .cknob .inner::before {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.45) 0 2deg, rgba(0,0,0,0.26) 2deg 4deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 58%, #000 60% 100%);
+            mask: radial-gradient(circle, transparent 0 58%, #000 60% 100%);
+  }
+  .cknob .dot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #eef1f3; margin-left: -2.5px; margin-top: -2.5px; z-index: 0; pointer-events: none; box-shadow: 0 0 1px rgba(0,0,0,0.4); }
+  .cknob .flabel { position: absolute; font-size: 12px; font-weight: 600; color: #ccd0d4; width: 24px; text-align: center; margin-left: -12px; margin-top: -7px; z-index: 1; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .cknob .flabel.sel { color: #fff; font-weight: 700; }
+  .cknob .pm { position: absolute; font-size: 14px; font-weight: 600; color: #e2e6e9; margin-left: -4px; margin-top: -8px; z-index: 1; pointer-events: none; }
+
+  /* Pointer knobs (maroon gain, blue HPF): round base + a flat bar handle */
+  .chicken {
+    width: 72px; height: 72px; border-radius: 50%; position: relative; cursor: ns-resize;
+    box-shadow: 0 0 0 1px #2d2f31, 0 3px 6px rgba(0,0,0,0.55);
+  }
+  .chicken.red  { background: radial-gradient(circle at 50% 32%, #8f3337, #5e1f23 62%, #3c1114 100%); }
+  .chicken.blue { background: radial-gradient(circle at 50% 32%, #3a66a2, #22437a 62%, #142d54 100%); }
+  /* knurled rim */
+  .chicken::before {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; z-index: 1; pointer-events: none;
+    background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.35) 0 1.6deg, rgba(0,0,0,0.3) 1.6deg 3.2deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 76%, #000 78% 100%);
+            mask: radial-gradient(circle, transparent 0 76%, #000 78% 100%);
+  }
+  /* the flat bar handle that points to the setting */
+  .chicken .nose {
+    position: absolute; left: 50%; top: 8px; width: 13px; height: 52px; margin-left: -6.5px;
+    border-radius: 6px; transform-origin: 50% 28px; z-index: 2;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .chicken.red  .nose { background: linear-gradient(#be5458, #6a2024); }
+  .chicken.blue .nose { background: linear-gradient(#5a88c6, #1c3f73); }
+
+  /* Frequency selector numbers under each knob */
+  .freqrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 6px; margin-top: 8px; max-width: 108px; }
+  .freqrow button {
+    background: none; border: none; color: #8a9099; font-size: 10px; cursor: pointer;
+    padding: 1px 2px; border-radius: 3px; font-variant-numeric: tabular-nums;
+  }
+  .freqrow button.sel { color: #fff; background: #3a6ea5; }
+  .readout { color: #d8dde2; font-size: 11px; margin-top: 8px; min-height: 14px; font-variant-numeric: tabular-nums; }
+
+  /* Ø / EQ white buttons */
+  .buttons { display: flex; flex-direction: column; gap: 6px; margin-left: 4px; }
+  .pbtn {
+    width: 34px; height: 30px; border-radius: 3px; border: 1px solid #c8ccd0; cursor: pointer;
+    background: linear-gradient(#f4f5f6, #d7dade); color: #2b2f33; font-size: 11px; font-weight: 700;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.4);
+  }
+  .pbtn.on { background: linear-gradient(#cfe0ff, #9cc0ff); border-color: #6ea0e6; }
+
+  .divider { width: 1px; align-self: stretch; background: rgba(255,255,255,0.08); margin: 10px 0; }
+  .logo { display: flex; align-items: center; justify-content: center; width: 110px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #16181b; color: #d7dbdf; }
+    h1 { color: #eef1f3; }
+    .subtitle { color: #9aa1a8; }
+    #curve { background: #1c1f23; border-color: #3a4046; }
+  }
+</style>
+</head>
+<body>
+  <h1>Neve 1073 — EQ Section</h1>
+  <div class="subtitle">Drag the grey knobs to boost/cut; click a frequency number to tune the band. (An approximation for learning.)</div>
+
+  <canvas id="curve" width="820" height="260"></canvas>
+
+  <div class="panel">
+    <span class="screw tl"></span><span class="screw tr"></span>
+    <span class="screw bl"></span><span class="screw br"></span>
+
+    <!-- Neve brand mark (the preamp/drive section isn't part of this lesson) -->
+    <div class="logo" title="Neve"><svg viewBox="0 0 100 100" width="58" height="58"><polygon fill="#e42313" points="8,72 44,20 44,44 92,28 56,80 56,56"/></svg></div>
+
+    <div class="divider"></div>
+
+    <!-- High-pass filter -->
+    <div class="control">
+      <div class="sym" title="High-pass filter"><svg width="26" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><polyline points="2,13 10,13 13,3 25,3"/></svg></div>
+      <div class="cknob blue allblue" id="hpf"><div class="inner"></div></div>
+      <div class="readout"></div>
+      <div class="name">High-Pass</div>
+      <div class="unit">Hz</div>
+    </div>
+
+    <!-- Low shelf -->
+    <div class="control">
+      <div class="sym" title="Low shelf"><svg width="26" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><polyline points="1,4 10,4 15,10 25,10"/></svg></div>
+      <div class="cknob silver" id="lowShelf"><div class="inner"></div></div>
+      <div class="readout" id="lowShelfOut">0.0 dB</div>
+      <div class="name">Low Shelf</div>
+      <div class="unit">Hz</div>
+    </div>
+
+    <!-- Mid bell -->
+    <div class="control">
+      <div class="sym" title="Peak / bell"><svg width="26" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M1 11 C7 11 9 4 13 4 C17 4 19 11 25 11"/></svg></div>
+      <div class="cknob silver" id="mid"><div class="inner"></div></div>
+      <div class="readout" id="midOut">0.0 dB</div>
+      <div class="name">Mid</div>
+      <div class="unit">kHz</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- High shelf (fixed 12 kHz) -->
+    <div class="control">
+      <div class="sym" title="High shelf"><svg width="26" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><polyline points="1,10 11,10 16,4 25,4"/></svg></div>
+      <div class="cknob blue allblue" id="highShelf"><div class="inner"></div></div>
+      <div class="readout" id="highShelfOut">0.0 dB</div>
+      <div class="name">High Shelf</div>
+      <div class="unit">12 kHz</div>
+    </div>
+
+    <!-- Phase / EQ buttons -->
+    <div class="buttons">
+      <button class="pbtn" id="phase" title="Phase (decorative)">&#216;</button>
+      <button class="pbtn on" id="eqIn" title="EQ in / out">EQ</button>
+    </div>
+  </div>
+
+<script>
+// =====================================================================
+//  Neve 1073 — EQ section visualizer (companion to the Pultec one).
+//  Same idea: controls feed a live frequency-response curve.
+// =====================================================================
+var MIN_FREQ = 20, MAX_FREQ = 20000, MAX_DB = 20;
+
+var state = {
+  lowFreq: 110, lowGain: 0,       // low shelf 35/60/110/220 Hz
+  midFreq: 1600, midGain: 0,      // mid bell 360 Hz .. 7.2 kHz
+  highGain: 0,                    // high shelf, fixed 12 kHz
+  hpf: 0,                         // high-pass: 0 (off), 50/80/160/300 Hz
+  on: true                        // EQ in/out
+};
+
+// ---- EQ math (matches the course model) ----
+function shelfLow(f, C) { return 1 / (1 + Math.pow(f / C, 2)); }
+function shelfHigh(f, C, order) { return 1 / (1 + Math.pow(C / f, order)); }
+function bellShape(f, fc, w) { var o = Math.log(f / fc) / Math.log(2); return Math.exp(-(o * o) / (2 * w * w)); }
+
+function lowShelfBand(f) { return state.lowGain * shelfLow(f, state.lowFreq * 2); }
+function midBand(f)      { return state.midGain * bellShape(f, state.midFreq, 1.0); }
+function highShelfBand(f) { return state.highGain * shelfHigh(f, 9000, 2); }
+function hpfBand(f) { return state.hpf ? -10 * Math.log10(1 + Math.pow(state.hpf / f, 6)) : 0; }
+
+function totalGainDb(f) {
+  if (!state.on) return 0;
+  return lowShelfBand(f) + midBand(f) + highShelfBand(f) + hpfBand(f);
+}
+
+// The same EQ as a list of filter specs for the course-level audio engine
+// (see index.html). Empty list = EQ out (dry).
+function octToQ(oct) { return 1 / (2 * Math.sinh((Math.LN2 / 2) * oct)); }
+window.audioParams = function () {
+  if (!state.on) return [];
+  var arr = [];
+  if (state.hpf) arr.push({ type: "highpass", freq: state.hpf, q: 0.707 });
+  arr.push({ type: "lowshelf",  freq: state.lowFreq * 2, gain: state.lowGain });
+  arr.push({ type: "peaking",   freq: state.midFreq, gain: state.midGain, q: octToQ(1.6) });
+  arr.push({ type: "highshelf", freq: 9000, gain: state.highGain });
+  return arr;
+};
+
+// ---- Optional "target" reference curve: the Pultec bass trick (60 Hz, Boost 10,
+//      Atten 7), drawn in blue so the user can try to match it with the Neve.
+//      Enabled on the course's recreate screen via ?target=pultec. ----
+var showTarget = location.search.indexOf("target=pultec") !== -1;
+function pultecTargetDb(f) {
+  var lowFreq = 60, boost = 16, atten = 11.2;        // boost=10/10*16, atten=7/10*16
+  var boostDb = boost * (shelfLow(f, lowFreq * 2.5) + 0.22 * bellShape(f, lowFreq * 1.2, 0.6));
+  var attenDb = -atten * shelfLow(f, lowFreq * 4.5);
+  return boostDb + attenDb;
+}
+
+// ---- Drawing (shared look with the Pultec graph) ----
+var canvas = document.getElementById("curve"), ctx = canvas.getContext("2d");
+var W = canvas.width, H = canvas.height;
+function freqToX(f) { var lo = Math.log10(MIN_FREQ), hi = Math.log10(MAX_FREQ); return ((Math.log10(f) - lo) / (hi - lo)) * W; }
+function dbToY(db) { return H / 2 - (db / MAX_DB) * (H / 2); }
+
+function theme() {
+  return matchMedia("(prefers-color-scheme: dark)").matches
+    ? { minor: "#2a2e33", major: "#3a4046", zero: "#525960", nzh: "#2a2e33", label: "#9aa1a8" }
+    : { minor: "#eceff2", major: "#cfd3d7", zero: "#b4bac1", nzh: "#e4e7ea", label: "#8a9099" };
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  var T = theme();
+  ctx.font = "10px sans-serif";
+  var labelAt = { 20:1,30:1,50:1,100:1,200:1,300:1,500:1,1000:1,2000:1,3000:1,5000:1,10000:1,20000:1 };
+  for (var exp = 1; exp <= 4; exp++) {
+    for (var mult = 1; mult <= 9; mult++) {
+      var f = mult * Math.pow(10, exp);
+      if (f < MIN_FREQ || f > MAX_FREQ) continue;
+      var x = freqToX(f);
+      ctx.strokeStyle = (mult === 1) ? T.major : T.minor;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      if (labelAt[f]) { ctx.fillStyle = T.label; ctx.fillText(f >= 1000 ? (f / 1000) + "k" : f, (f === MAX_FREQ) ? x - 20 : x + 2, H - 4); }
+    }
+  }
+  ctx.fillStyle = T.label;
+  for (var db = -MAX_DB; db <= MAX_DB; db += 5) {
+    var y = dbToY(db);
+    ctx.strokeStyle = (db === 0) ? T.zero : T.nzh;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    if (db === -MAX_DB) continue;
+    ctx.fillText((db > 0 ? "+" : "") + db, 3, (db === MAX_DB) ? y + 11 : y - 3);
+  }
+  // Target curve (blue) to match, drawn behind the live Neve curve.
+  if (showTarget) {
+    ctx.save();
+    ctx.strokeStyle = "#4a90d9"; ctx.globalAlpha = 0.55; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (var tx = 0; tx <= W; tx++) {
+      var tf = Math.pow(10, Math.log10(MIN_FREQ) + (tx / W) * (Math.log10(MAX_FREQ) - Math.log10(MIN_FREQ)));
+      var ty = dbToY(pultecTargetDb(tf));
+      if (tx === 0) ctx.moveTo(tx, ty); else ctx.lineTo(tx, ty);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.strokeStyle = "#e24b3f"; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (var px = 0; px <= W; px++) {
+    var frac = px / W;
+    var f2 = Math.pow(10, Math.log10(MIN_FREQ) + frac * (Math.log10(MAX_FREQ) - Math.log10(MIN_FREQ)));
+    var y2 = dbToY(totalGainDb(f2));
+    if (px === 0) ctx.moveTo(px, y2); else ctx.lineTo(px, y2);
+  }
+  ctx.stroke();
+
+  // When embedded in the course, send this unit's EQ to the course audio engine.
+  if (window.self !== window.top) {
+    window.parent.postMessage({ type: "eqParams", params: window.audioParams() }, "*");
+  }
+}
+
+// ---- Concentric knob: knurled grey inner = gain, coloured outer ring = freq ----
+// opts: { id, outId, gainKey, gMin, gMax, freqKey, freqOptions, freqFmt }
+// Gain side and frequency side are each optional (high shelf has gain only; HPF
+// has frequency only).
+function setupConcentric(opts) {
+  var knob = document.getElementById(opts.id), inner = knob.querySelector(".inner");
+  var out = opts.outId ? document.getElementById(opts.outId) : null;
+  var cx = 48, cy = 48;
+  function place(el, r, deg) { var a = deg * Math.PI / 180; el.style.left = (cx + r * Math.sin(a)) + "px"; el.style.top = (cy - r * Math.cos(a)) + "px"; }
+
+  // --- Gain side: white pointer on the inner knob + a dot scale + "+ / -" ---
+  var gPtr = null;
+  if (opts.gainKey) {
+    gPtr = document.createElement("div");
+    gPtr.style.cssText = "position:absolute;left:50%;top:25px;width:3px;height:11px;margin-left:-1.5px;" +
+      "background:#fff;border-radius:2px;transform-origin:50% 23px;z-index:3;pointer-events:none;";
+    knob.appendChild(gPtr);
+    var plus = document.createElement("div"); plus.className = "pm"; plus.textContent = "+"; place(plus, 59, -133); knob.appendChild(plus);
+    var minus = document.createElement("div"); minus.className = "pm"; minus.textContent = "−"; place(minus, 59, 133); knob.appendChild(minus);
+  }
+  // The dot scale (shown for gain knobs, and for any knob with dots:true).
+  if (opts.gainKey || opts.dots) {
+    for (var d = 0; d <= 14; d++) { var dot = document.createElement("div"); dot.className = "dot"; place(dot, 52, -140 + d * (280 / 14)); knob.appendChild(dot); }
+  }
+
+  // --- Frequency side: white pointer near the skirt + printed numbers ---
+  // Each option's angle: explicit `freqAngles[i]` if given, else an even arc.
+  function fAngle(i) {
+    if (opts.freqAngles) return opts.freqAngles[i];
+    return -125 + (i / (opts.freqOptions.length - 1)) * 250;
+  }
+  var fPtr = null;
+  if (opts.freqKey) {
+    fPtr = document.createElement("div");
+    fPtr.style.cssText = "position:absolute;left:50%;top:5px;width:4px;height:11px;margin-left:-2px;" +
+      "background:#fff;border-radius:1px;transform-origin:50% 43px;z-index:3;pointer-events:none;";
+    knob.appendChild(fPtr);
+    opts.freqOptions.forEach(function (o, i) {
+      if (o === 0) return;                         // skip the "Off" label (it clashes); still selectable at the bottom
+      var lab = document.createElement("div"); lab.className = "flabel"; lab.textContent = opts.freqFmt(o); lab.dataset.i = i;
+      place(lab, 64, fAngle(i));
+      lab.addEventListener("click", function (e) { e.stopPropagation(); state[opts.freqKey] = o; render(); });
+      knob.appendChild(lab);
+    });
+  }
+
+  function render() {
+    if (opts.gainKey) {
+      var v = state[opts.gainKey];
+      gPtr.style.transform = "rotate(" + (-140 + ((v - opts.gMin) / (opts.gMax - opts.gMin)) * 280) + "deg)";
+      if (out) out.textContent = (v > 0 ? "+" : "") + v.toFixed(1) + " dB";
+    }
+    if (opts.freqKey) {
+      var idx = opts.freqOptions.indexOf(state[opts.freqKey]);
+      fPtr.style.transform = "rotate(" + fAngle(idx) + "deg)";
+      knob.querySelectorAll(".flabel").forEach(function (l) { l.classList.toggle("sel", Number(l.dataset.i) === idx); });
+    }
+    draw();
+  }
+
+  // Dragging: inner knob = gain (if any), otherwise frequency; outer ring = frequency.
+  var mode = null, startY = 0, startV = 0, startIdx = 0;
+  function freqStep(e) {
+    var steps = Math.round((startY - e.clientY) / 24);
+    var i = Math.max(0, Math.min(opts.freqOptions.length - 1, startIdx + steps));
+    if (opts.freqOptions[i] !== state[opts.freqKey]) { state[opts.freqKey] = opts.freqOptions[i]; render(); }
+  }
+  inner.addEventListener("mousedown", function (e) {
+    startY = e.clientY;
+    if (opts.gainKey) { mode = "gain"; startV = state[opts.gainKey]; }
+    else { mode = "freq"; startIdx = opts.freqOptions.indexOf(state[opts.freqKey]); }
+    e.stopPropagation(); e.preventDefault();
+  });
+  knob.addEventListener("mousedown", function (e) {
+    if (!opts.freqKey) return;
+    mode = "freq"; startY = e.clientY; startIdx = opts.freqOptions.indexOf(state[opts.freqKey]); e.preventDefault();
+  });
+  window.addEventListener("mousemove", function (e) {
+    if (!mode) return;
+    if (mode === "gain") { state[opts.gainKey] = Math.max(opts.gMin, Math.min(opts.gMax, startV + (startY - e.clientY) * ((opts.gMax - opts.gMin) / 220))); render(); }
+    else freqStep(e);
+  });
+  window.addEventListener("mouseup", function () { mode = null; });
+  render();
+}
+
+var fmtMid = function (v) { return v >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) : "0.36"; };  // 360->0.36, 1600->1.6
+var fmtH = function (v) { return "" + v; };
+var fmtHpf = function (v) { return v === 0 ? "Off" : "" + v; };
+
+// High shelf (gain only, fixed 12 kHz) — blue skirt, no frequency ring.
+setupConcentric({ id: "highShelf", outId: "highShelfOut", gainKey: "highGain", gMin: -16, gMax: 16 });
+// Mid (gain + frequency) — silver skirt.
+setupConcentric({ id: "mid", outId: "midOut", gainKey: "midGain", gMin: -18, gMax: 18,
+                  freqKey: "midFreq", freqOptions: [360, 700, 1600, 3200, 4800, 7200], freqFmt: fmtMid });
+// Low shelf (gain + frequency) — silver skirt.
+setupConcentric({ id: "lowShelf", outId: "lowShelfOut", gainKey: "lowGain", gMin: -16, gMax: 16,
+                  freqKey: "lowFreq", freqOptions: [35, 60, 110, 220], freqFmt: fmtH });
+// High-pass filter (frequency only) — all-blue knob. To match Low/Mid, the four
+// frequencies sit on the top arc (with the dot scale) and "Off" sits at the bottom.
+setupConcentric({ id: "hpf", freqKey: "hpf", freqOptions: [0, 50, 80, 160, 300], freqFmt: fmtHpf,
+                  freqAngles: [180, -125, -42, 42, 125], dots: true });
+
+// EQ in/out
+var eqBtn = document.getElementById("eqIn");
+eqBtn.addEventListener("click", function () {
+  state.on = !state.on;
+  eqBtn.classList.toggle("on", state.on);
+  draw();
+});
+
+draw();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+
+// When embedded in the course (iframe), hide the page's own headings.
+if (window.self !== window.top) {
+  ["h1", ".subtitle"].forEach(function (sel) { var el = document.querySelector(sel); if (el) el.style.display = "none"; });
+  document.body.style.padding = "10px 12px";
+}
+
+// The course may ask us to (re)send our EQ — e.g. when the audio first starts.
+window.addEventListener("message", function (e) {
+  if (e.data && e.data.type === "requestEq" && window.self !== window.top) {
+    window.parent.postMessage({ type: "eqParams", params: window.audioParams() }, "*");
+  }
+});
+</script>
+<script src="logo.js"></script>
+</body>
+</html>

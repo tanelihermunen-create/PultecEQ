@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why the Pultec is different — a short EQ course</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0; background: #ffffff; color: #2b2f33;
+    font-family: 'Figtree', -apple-system, Helvetica, Arial, sans-serif;
+    display: flex; justify-content: center; align-items: flex-start; padding: 28px 12px 60px;
+  }
+  .card {
+    width: 860px; max-width: 100%;
+    box-sizing: border-box;
+    background: #ffffff;
+    padding: 16px 28px 20px;
+  }
+  /* Content region (page scrolls naturally; footer is pinned to the window) */
+  #stage { padding-bottom: 118px; }
+  .footer {
+    position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: 860px; max-width: 100%; box-sizing: border-box;
+    display: flex; align-items: center; gap: 14px;
+    background: #ffffff; padding: 6px 24px 12px; z-index: 10;
+  }
+  .progress { font-size: 12px; color: #7a8085; letter-spacing: 0.5px; }
+  .dots { margin-top: 6px; padding-left: 3px; margin-bottom: 16px; }
+  .dots span { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 7px; }
+  .dots span.active { transform: scale(1.18); }
+  h1 { font-size: 22px; margin: 4px 0 8px; }
+  .body { font-size: 16px; line-height: 1.6; color: #41474d; }
+  .body b { color: #1f2327; }
+  .body ul { margin: 8px 0; padding-left: 20px; }
+  .body li { margin: 3px 0; }
+  .tryit { display: block; margin: 4px 0 16px; padding: 11px 13px; background: #f2f3f5; border-radius: 4px; color: #41474d; }
+  .tryit b { color: #1f2327; }
+  #cover .covernote { text-align: left; font-size: 16px; color: #5a626b; line-height: 1.55; }
+  #cover .covernote b { color: #1f2327; }
+  #cover .coverhear { display: flex; align-items: center; gap: 16px; align-self: center; width: 100%; max-width: 620px; margin-top: 12px; }
+  #cover .coverhear .covernote { flex: 1; }
+
+  /* Course-level audio play/pause button (grayscale; dark while playing) */
+  .playbtn {
+    width: 44px; height: 44px; border-radius: 50%; padding: 0;
+    font-size: 16px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #d7dbdf; color: #2b2f33; border: none; font-family: inherit;
+  }
+  .playbtn:hover { background: #c7ccd0; }
+  .playbtn.playing { background: #555b61; color: #ffffff; }
+  .playbtn.playing:hover { background: #474c52; }
+  #caudiobar { margin: 14px 0 4px; }
+  #cover #caudiobar { margin: 0; flex: none; order: -1; }
+
+  #graph {
+    display: block; width: 100%; background: #ffffff;
+    border: 1px solid #c4c9cf; border-radius: 8px; margin: 14px 0 4px;
+  }
+  .legend { font-size: 12px; color: #5a626b; margin-bottom: 8px; }
+  .legend .sw { display: inline-block; width: 12px; height: 3px; border-radius: 2px;
+    margin: 0 6px 0 14px; vertical-align: middle; }
+
+  /* Teaching sliders */
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 24px; margin: 8px 0 4px; }
+  .ctl { display: flex; flex-direction: column; font-size: 12px; min-width: 150px; }
+  .ctl .top { display: flex; justify-content: space-between; color: #5a626b; margin-bottom: 4px; }
+  .ctl .val { color: #1f6fd6; font-variant-numeric: tabular-nums; }
+  .ctl input[type=range] { width: 100%; accent-color: #1f6fd6; }
+  .ctl select { font-size: 13px; padding: 4px; border: 1px solid #c4c9cf; border-radius: 6px; }
+
+  .nav { flex: none; display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .arrow { width: 64px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; padding: 6px 0; color: #b8bdc2; line-height: 0; }
+  .arrow svg { height: 30px; width: auto; display: block; }
+  .arrow:hover:not(:disabled) { color: #5a6066; }
+  .arrow:active:not(:disabled) { color: #c4c9ce; }
+  .arrow:disabled { opacity: 0.25; cursor: default; }
+  #back.arrow svg { transform: scaleX(-1); }
+  a.sandbox { color: #1f6fd6; font-weight: 600; text-decoration: none; }
+  a.sandbox:hover { text-decoration: underline; }
+  #embed { width: 100%; height: 560px; border: none; display: none; background: #ffffff; }
+  #belowfig { margin: 20px 0 0; text-align: left; }
+  #belowfig img { max-width: 100%; transform: rotate(-0.3deg); }
+  #belowfig figcaption { font-size: 12px; color: #8a9099; margin-top: 8px; line-height: 1.4; }
+
+  /* Cover / landing screen */
+  #cover { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; padding: 20px 0 24px; }
+  #cover .coverwave { width: 100%; max-width: 680px; height: 260px; display: block; overflow: visible; }
+  #cover .covertitle { font-size: 38px; font-weight: 700; color: #1f2327; margin-top: 16px; align-self: center; width: 100%; max-width: 620px; text-align: left; }
+  #cover .coversub { font-size: 16px; color: #5a626b; margin-top: 10px; align-self: center; width: 100%; max-width: 620px; line-height: 1.4; text-align: left; }
+  #cover .covertry { align-self: center; text-align: left; max-width: 620px; margin-top: 16px; padding: 12px 15px; background: #f2f3f5; border-radius: 4px; font-size: 16px; color: #41474d; line-height: 1.55; }
+  #cover .covertry ul { margin: 8px 0; padding-left: 20px; }
+  #cover .covertry li { margin: 4px 0; }
+  #cover .covertry b { color: #1f2327; }
+
+  /* Spectrum palette (from the equal-loudness contour chart) */
+  :root {
+    --c-red:   #e24b3f; --c-orange: #f08a3c; --c-yellow: #eccf3f;
+    --c-green: #5cb85a; --c-teal:   #3fb2a6; --c-blue:   #4a90d9; --c-purple: #8e5aa8;
+  }
+  /* Masthead: compact waveform logomark on the left + a trailing line (no title) */
+  .masthead { display: flex; align-items: center; gap: 0; flex: 1 1 auto; min-width: 0; margin: 0; }
+  .masthead .logolead { flex: 1; height: 42px; min-width: 0; }
+  .masthead .logomark { width: 80px; height: 42px; flex: none; }
+  .masthead .logotail { flex: 7; height: 42px; min-width: 0; }
+  .masthead .logomark path, .masthead .logolead path, .masthead .logotail path, #cover .coverwave path { transform-box: fill-box; transform-origin: center; animation: eqpulse 4s ease-in-out infinite; }
+  .masthead .logomark path:nth-child(1) { animation-delay: 0s; }
+  .masthead .logomark path:nth-child(2) { animation-delay: .18s; }
+  .masthead .logomark path:nth-child(3) { animation-delay: .36s; }
+  .masthead .logomark path:nth-child(4) { animation-delay: .54s; }
+  .masthead .logomark path:nth-child(5) { animation-delay: .72s; }
+  .masthead .logomark path:nth-child(6) { animation-delay: .90s; }
+  @keyframes eqpulse { 0%, 100% { transform: scaleY(0.82); } 50% { transform: scaleY(1.12); } }
+
+  /* Auto dark mode */
+  @media (prefers-color-scheme: dark) {
+    body { background: #16181b; color: #d7dbdf; }
+    .card { background: transparent; }
+    h1 { color: #eef1f3; }
+    .body { color: #c4c9ce; }
+    .body b { color: #eef1f3; }
+    .tryit, #cover .covertry { background: #23272b; color: #c4c9ce; }
+    .tryit b, #cover .covertry b { color: #eef1f3; }
+    #cover .covernote { color: #9aa1a8; } #cover .covernote b { color: #eef1f3; }
+    #cover .covertitle { color: #eef1f3; }
+    #cover .coversub { color: #aab0b6; }
+    .progress { color: #9aa1a8; }
+    #embed { background: #16181b; }
+    #belowfig figcaption { color: #9aa1a8; }
+    #belowfig img { border-color: #3a4046; }
+    .footer { background: #16181b; }
+    .arrow { color: #767c82; }
+    .arrow:hover:not(:disabled) { color: #d7dbdf; }
+    .arrow:active:not(:disabled) { color: #c4c9ce; }
+  }
+  @media (prefers-reduced-motion: reduce) { .masthead .logomark path, .masthead .logotail path, #cover .coverwave path { animation: none; } }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div id="stage">
+    <div id="cover">
+      <svg class="coverwave" preserveAspectRatio="none"></svg>
+      <div class="covertitle">The Pultec Trick</div>
+      <div class="coversub">The EQ that boosts and cuts at the same time</div>
+      <div class="covertry">
+        <b>What you'll need to know.</b> This module assumes you understand:
+        <ul>
+          <li>What frequencies are (low = bass, high = treble)</li>
+          <li>What an EQ curve represents (the shape shows which frequencies are boosted or cut)</li>
+        </ul>
+        If those concepts feel fuzzy, no problem — spend a few minutes with an EQ tutorial first, then come back.
+      </div>
+      <div class="coverhear">
+        <div class="covernote">
+          <b>Want to hear it too?</b> Use the <b>▶</b> button to play a short looping clip through the EQ — then, on
+          each unit, move the knobs to <i>hear</i> the curve, not just see it. It keeps playing as you move through the
+          module, so you can listen right along. It's completely optional, though: you can go through the whole module
+          with the sound off and not miss a thing.
+        </div>
+      </div>
+    </div>
+
+    <div class="progress" id="progress">Screen 1</div>
+    <div class="dots" id="dots"></div>
+    <h1 id="title"></h1>
+    <div class="body" id="body"></div>
+    <div class="tryit" id="tryit" style="display:none"></div>
+
+    <canvas id="graph" width="804" height="300"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="controls" id="controls"></div>
+    <iframe id="embed" title="interactive unit"></iframe>
+    <figure id="belowfig" style="display:none">
+      <img id="belowimg" alt="">
+      <figcaption id="belowcap"></figcaption>
+    </figure>
+    <div id="caudiobar" style="display:none"><button id="caudiobtn" class="playbtn" aria-label="Play audio" title="Play audio">▶</button></div>
+    </div>
+
+    <audio id="caudio" src="EQloop.m4a" loop preload="none"></audio>
+
+    <div class="footer">
+      <button id="back" class="arrow" aria-label="Back" title="Back">
+        <svg viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt" stroke-linejoin="miter"><path d="M11 4 L21 12 L11 20"/><path d="M23 4 L33 12 L23 20"/></svg>
+      </button>
+      <div class="masthead">
+        <svg class="logolead" id="logolead" viewBox="0 -7 200 58" preserveAspectRatio="none" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></svg>
+        <svg class="logomark" viewBox="0 -7 84 58" preserveAspectRatio="none" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path vector-effect="non-scaling-stroke" d="M0 22 L18 22 C 25 22, 28 2, 33 2 C 38 2, 41 30, 46 30 C 51 30, 55 22, 84 22" stroke="var(--c-red)"/>
+          <path vector-effect="non-scaling-stroke" d="M0 22 L18 22 C 25 22, 28 5, 33 5 C 38 5, 41 29, 46 29 C 51 29, 55 22, 84 22" stroke="var(--c-orange)"/>
+          <path vector-effect="non-scaling-stroke" d="M0 22 L18 22 C 25 22, 28 8, 33 8 C 38 8, 41 28, 46 28 C 51 28, 55 22, 84 22" stroke="var(--c-yellow)"/>
+          <path vector-effect="non-scaling-stroke" d="M0 22 L18 22 C 25 22, 28 11, 33 11 C 38 11, 41 26, 46 26 C 51 26, 55 22, 84 22" stroke="var(--c-green)"/>
+          <path vector-effect="non-scaling-stroke" d="M0 22 L18 22 C 25 22, 28 14, 33 14 C 38 14, 41 25, 46 25 C 51 25, 55 22, 84 22" stroke="var(--c-teal)"/>
+          <path vector-effect="non-scaling-stroke" d="M0 22 L18 22 C 25 22, 28 16, 33 16 C 38 16, 41 24, 46 24 C 51 24, 55 22, 84 22" stroke="var(--c-blue)"/>
+        </svg>
+        <svg class="logotail" id="logotail" viewBox="0 -7 200 58" preserveAspectRatio="none" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></svg>
+      </div>
+      <button id="next" class="arrow" aria-label="Next" title="Next">
+        <svg viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt" stroke-linejoin="miter"><path d="M11 4 L21 12 L11 20"/><path d="M23 4 L33 12 L23 20"/></svg>
+      </button>
+    </div>
+  </div>
+
+<script>
+// =====================================================================
+//  "Why the Pultec is different" — a short, interactive EQ course.
+//  Same idea as the visualizer: turn a control, see the curve change.
+//  Here we also draw a second curve (a normal "parametric" EQ) so the
+//  Pultec's quirks stand out by comparison.
+// =====================================================================
+
+// ---- Graph range (shared look with the main visualizer) ----
+var MIN_FREQ = 20, MAX_FREQ = 20000, MAX_DB = 20;
+
+// ---- All the live control values live here ----
+var cs = {
+  // Pultec controls
+  pLowFreq: 60, pLowBoost: 0, pLowAtten: 0,
+  pHighFreq: 10000, pHighBoost: 0, pBw: 3,
+  pAttenFreq: 20000, pHighAtten: 0,
+  // Neve 1073 controls (our "classic console EQ" reference)
+  nLowFreq: 110, nLowGain: 0,       // low shelf: 35/60/110/220 Hz
+  nMidFreq: 1600, nMidGain: 0,      // mid bell: 360 Hz .. 7.2 kHz
+  nHighGain: 0,                     // high shelf, fixed 12 kHz
+  nHpf: 0                           // high-pass filter: 0 (off), 50/80/160/300 Hz
+};
+
+// ---------------------------------------------------------------------
+//  THE EQ MATH
+// ---------------------------------------------------------------------
+function shelfLow(f, C) { return 1 / (1 + Math.pow(f / C, 2)); }
+function shelfHigh(f, C, order) { return 1 / (1 + Math.pow(C / f, order)); }
+function bellShape(f, fc, width) {              // width in octaves
+  var o = Math.log(f / fc) / Math.log(2);
+  return Math.exp(-(o * o) / (2 * width * width));
+}
+function knobToDb(knob, maxDb) { return (knob / 10) * maxDb; }
+
+// --- Pultec bands (same model as the main visualizer) ---
+function pLowBoostBand(f) {
+  return knobToDb(cs.pLowBoost, 16) * (shelfLow(f, cs.pLowFreq * 2.5) + 0.22 * bellShape(f, cs.pLowFreq * 1.2, 0.6));
+}
+function pLowAttenBand(f)  { return -knobToDb(cs.pLowAtten, 16) * shelfLow(f, cs.pLowFreq * 4.5); }
+function pHighBoostBand(f) {
+  var w = 0.35 + cs.pBw * 0.12;
+  var g = knobToDb(cs.pHighBoost, 12) * (1 + 0.25 * (1 - cs.pBw / 10));
+  return g * bellShape(f, cs.pHighFreq, w);
+}
+function pHighAttenBand(f) { return -knobToDb(cs.pHighAtten, 18) * shelfHigh(f, cs.pAttenFreq * 0.8, 2.2); }
+
+function pultecCurve(f) {
+  return pLowBoostBand(f) + pLowAttenBand(f) + pHighBoostBand(f) + pHighAttenBand(f);
+}
+
+// --- Neve 1073: a classic console EQ. Each band is one bipolar knob
+//     (up = boost, down = cut), with fixed/stepped frequencies, plus a HPF. ---
+function nLowShelf(f) { return cs.nLowGain * shelfLow(f, cs.nLowFreq * 2); }
+function nMidBell(f)  { return cs.nMidGain * bellShape(f, cs.nMidFreq, 1.0); }   // ~1 octave wide
+function nHighShelf(f) { return cs.nHighGain * shelfHigh(f, 9000, 2); }          // fixed 12 kHz-ish
+function nHpf(f) { return cs.nHpf ? -10 * Math.log10(1 + Math.pow(cs.nHpf / f, 6)) : 0; } // 18 dB/oct
+function neveCurve(f) { return nLowShelf(f) + nMidBell(f) + nHighShelf(f) + nHpf(f); }
+
+// ---------------------------------------------------------------------
+//  DRAWING
+// ---------------------------------------------------------------------
+var canvas = document.getElementById("graph");
+var ctx = canvas.getContext("2d");
+var W = canvas.width, H = canvas.height;
+
+function freqToX(f) {
+  var lo = Math.log10(MIN_FREQ), hi = Math.log10(MAX_FREQ);
+  return ((Math.log10(f) - lo) / (hi - lo)) * W;
+}
+function dbToY(db) { return H / 2 - (db / MAX_DB) * (H / 2); }
+
+function drawGrid() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = "10px sans-serif";
+  var labelAt = { 20:1,30:1,50:1,100:1,200:1,300:1,500:1,1000:1,2000:1,3000:1,5000:1,10000:1,20000:1 };
+  for (var exp = 1; exp <= 4; exp++) {
+    for (var mult = 1; mult <= 9; mult++) {
+      var f = mult * Math.pow(10, exp);
+      if (f < MIN_FREQ || f > MAX_FREQ) continue;
+      var x = freqToX(f);
+      ctx.strokeStyle = (mult === 1) ? "#cfd3d7" : "#eceff2";
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      if (labelAt[f]) {
+        ctx.fillStyle = "#8a9099";
+        var lx = (f === MAX_FREQ) ? x - 20 : x + 2;
+        ctx.fillText(f >= 1000 ? (f / 1000) + "k" : f, lx, H - 4);
+      }
+    }
+  }
+  ctx.fillStyle = "#8a9099";
+  for (var db = -MAX_DB; db <= MAX_DB; db += 5) {
+    var y = dbToY(db);
+    ctx.strokeStyle = (db === 0) ? "#b4bac1" : "#e4e7ea";
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    if (db === -MAX_DB) continue;
+    ctx.fillText((db > 0 ? "+" : "") + db, 3, (db === MAX_DB) ? y + 11 : y - 3);
+  }
+}
+
+function drawOneCurve(fn, color) {
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (var px = 0; px <= W; px++) {
+    var frac = px / W;
+    var f = Math.pow(10, Math.log10(MIN_FREQ) + frac * (Math.log10(MAX_FREQ) - Math.log10(MIN_FREQ)));
+    var y = dbToY(fn(f));
+    if (px === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+}
+
+// Draw whatever curves the current screen asked for, plus a legend.
+function redraw() {
+  drawGrid();
+  var curves = screens[current].curves;
+  var legendHtml = "";
+  curves.forEach(function (c) {
+    drawOneCurve(c.fn, c.color);
+    legendHtml += '<span class="sw" style="background:' + c.color + '"></span>' + c.label;
+  });
+  document.getElementById("legend").innerHTML = curves.length > 1 ? legendHtml : "";
+}
+
+// ---------------------------------------------------------------------
+//  TEACHING CONTROLS (plain sliders / selectors)
+// ---------------------------------------------------------------------
+var fmtKnob = function (v) { return v.toFixed(1); };
+var fmtGain = function (v) { return (v > 0 ? "+" : "") + v.toFixed(1) + " dB"; };
+var fmtQ    = function (v) { return "Q " + v.toFixed(1); };
+var fmtBw   = function (v) { return v < 3.5 ? "sharp" : (v > 6.5 ? "broad" : "medium"); };
+var fmtFreq = function (v) {
+  return v >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + " kHz" : Math.round(v) + " Hz";
+};
+
+function buildControls(defs) {
+  var box = document.getElementById("controls");
+  box.innerHTML = "";
+  defs.forEach(function (d) {
+    var wrap = document.createElement("div"); wrap.className = "ctl";
+    var top = document.createElement("div"); top.className = "top";
+    var name = document.createElement("span"); name.textContent = d.label;
+    var val = document.createElement("span"); val.className = "val";
+    top.appendChild(name); top.appendChild(val); wrap.appendChild(top);
+
+    if (d.type === "steps") {
+      var sel = document.createElement("select");
+      d.options.forEach(function (o) {
+        var opt = document.createElement("option");
+        opt.value = o; opt.textContent = (o === 0) ? "Off" : fmtFreq(o);
+        if (o === cs[d.key]) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      val.textContent = "";
+      sel.addEventListener("change", function () { cs[d.key] = Number(sel.value); redraw(); });
+      wrap.appendChild(sel);
+    } else {
+      var inp = document.createElement("input"); inp.type = "range";
+      var isLog = (d.type === "log");
+      if (isLog) {
+        inp.min = Math.round(Math.log10(d.min) * 100);
+        inp.max = Math.round(Math.log10(d.max) * 100);
+        inp.step = 1;
+        inp.value = Math.log10(cs[d.key]) * 100;
+      } else {
+        inp.min = d.min; inp.max = d.max; inp.step = d.step;
+        inp.value = cs[d.key];
+      }
+      val.textContent = d.fmt(cs[d.key]);
+      inp.addEventListener("input", function () {
+        cs[d.key] = isLog ? Math.pow(10, inp.value / 100) : Number(inp.value);
+        val.textContent = d.fmt(cs[d.key]);
+        redraw();
+      });
+      wrap.appendChild(inp);
+    }
+    box.appendChild(wrap);
+  });
+}
+
+// Reusable control definitions
+var C = {
+  lowBoost:  { key: "pLowBoost",  label: "Low Boost",  min: 0, max: 10, step: 0.1, fmt: fmtKnob },
+  lowAtten:  { key: "pLowAtten",  label: "Low Atten",  min: 0, max: 10, step: 0.1, fmt: fmtKnob },
+  highBoost: { key: "pHighBoost", label: "High Boost", min: 0, max: 10, step: 0.1, fmt: fmtKnob },
+  highAtten: { key: "pHighAtten", label: "High Atten", min: 0, max: 10, step: 0.1, fmt: fmtKnob },
+  bandwidth: { key: "pBw",        label: "Bandwidth",  min: 0, max: 10, step: 0.1, fmt: fmtBw },
+  lowFreq:   { key: "pLowFreq",   label: "Low Frequency",  type: "steps", options: [20, 30, 60, 100] },
+  highFreq:  { key: "pHighFreq",  label: "High Boost Freq", type: "steps", options: [3000,4000,5000,8000,10000,12000,16000] },
+  attenFreq: { key: "pAttenFreq", label: "High Atten Freq", type: "steps", options: [5000,10000,20000] },
+  nLowGain:  { key: "nLowGain",  label: "Low Shelf",      min: -16, max: 16, step: 0.5, fmt: fmtGain },
+  nLowFreq:  { key: "nLowFreq",  label: "Low Shelf Freq", type: "steps", options: [35, 60, 110, 220] },
+  nMidGain:  { key: "nMidGain",  label: "Mid",            min: -18, max: 18, step: 0.5, fmt: fmtGain },
+  nMidFreq:  { key: "nMidFreq",  label: "Mid Freq",       type: "steps", options: [360,700,1600,3200,4800,7200] },
+  nHighGain: { key: "nHighGain", label: "High Shelf (12k)", min: -16, max: 16, step: 0.5, fmt: fmtGain },
+  nHpf:      { key: "nHpf",      label: "High-Pass Filter", type: "steps", options: [0, 50, 80, 160, 300] }
+};
+
+var BLUE = "#1f6fd6", ORANGE = "#e8853b";
+
+// ---------------------------------------------------------------------
+//  THE SCREENS
+// ---------------------------------------------------------------------
+var screens = [
+  { cover: true },
+  {
+    // Screen 2 — Introduction
+    title: "What makes the Pultec EQ different?",
+    body: "The Pultec EQP-1A is one of the most beloved equalizers in audio history. But if you've only used modern " +
+          "parametric EQs, it behaves… strangely.<br><br>" +
+          "<b>In this module, you'll learn:</b>" +
+          "<ul><li>How most EQs work (and what you probably expect)</li>" +
+          "<li>What the Pultec does differently</li>" +
+          "<li>What the <b>\"Pultec trick\"</b> is — and what it can teach us about EQ</li></ul>",
+    tryit: "Power on the unit, twist the knobs, and watch the EQ curve respond. Get a feel for the controls before we explain what's happening under the hood.",
+    embed: "pultec.html"
+  },
+  {
+    // Screen 4 — EQ Basics
+    title: "A quick EQ refresher",
+    body: "An equalizer lets you sculpt sound — turning up the frequencies you want more of, and turning down the ones you don't.<br><br>" +
+          "<b>Boost</b> a frequency → you hear more of it.<br><b>Cut</b> a frequency → you hear less of it.<br><br>" +
+          "Most EQs work predictably: choose a frequency, decide how much to boost or cut, and the curve shows exactly what you're doing.<br><br>" +
+          "<b>Three common EQ shapes:</b>" +
+          "<ul><li><b>Bell</b> — boosts or cuts a focused range around a frequency</li>" +
+          "<li><b>Shelf</b> — boosts or cuts everything above (high shelf) or below (low shelf) a frequency</li>" +
+          "<li><b>Filters</b> — high-pass cuts lows, low-pass cuts highs</li></ul>",
+    tryit: "Switch the shapes on and off and watch the curve. The filter and shelf have a fixed shape — you just turn them on or off. The bell lets you adjust frequency, width, and amount.",
+    embed: "demo.html"
+  },
+  {
+    // Screen 5 — Meet the Neve
+    title: "A classic parametric EQ",
+    body: "The Neve 1073 is one of the most famous EQs ever made — and it works exactly how you'd expect. It has all three " +
+          "shapes we just covered: <b>bells, shelves, and filters.</b><br><br>" +
+          "<b>From left to right:</b>" +
+          "<ul><li><b>High-pass filter</b> — choose which low frequencies to cut</li>" +
+          "<li><b>Low shelf</b> — set the frequency and how much you boost or cut the lows</li>" +
+          "<li><b>Bell</b> — choose the frequency and how much you boost or cut a focused range</li>" +
+          "<li><b>High shelf</b> — set the frequency and how much you boost or cut the highs</li></ul>" +
+          "Now let's look at something… different.",
+    tryit: "Experiment with the controls. The curve does exactly what you tell it to.",
+    embed: "neve.html"
+  },
+  {
+    // Screen 6 — Meet the Pultec
+    title: "What curves does it have?",
+    body: "The Pultec EQP-1A has a different layout than the Neve. The faceplate looks simple, but it helps to understand which " +
+          "shapes the controls actually produce — especially because the low and high sections behave a little differently.<br><br>" +
+          "<b>Here's what you've got:</b>" +
+          "<ul><li><b>Low-frequency boost</b> — a shelf that lifts the low end</li>" +
+          "<li><b>Low-frequency attenuation</b> — a shelf that cuts the low end</li>" +
+          "<li><b>High-frequency boost</b> — a bell for the highs (adjust the width with the Bandwidth knob)</li>" +
+          "<li><b>High-frequency attenuation</b> — a shelf cut to roll off top-end harshness</li></ul>" +
+          "That separation is about to get interesting.",
+    tryit: "Explore the controls. Notice how boost and attenuation are <b>separate</b> — not combined into one control like a parametric EQ.",
+    embed: "pultec.html"
+  },
+  {
+    // Screen 7 — The Pultec Trick
+    title: "Boost and cut at the same time?",
+    body: "Look at the low-frequency section again. You've got separate controls for <b>Boost</b> and <b>Attenuation</b> (cut) — " +
+          "and both work on the same set of frequencies.<br><br>" +
+          "The original Pultec manual told users to use one <i>or</i> the other, never both at once. But engineers, being engineers, " +
+          "ignored that advice — and something unexpected emerged.<br><br>" +
+          "The two shelves are <b>fighting each other</b> — and instead of canceling out, they create something new: a bass bump " +
+          "followed by a dip just above it. A curve that's smoother, more musical, and impossible to build with a single control.<br><br>" +
+          "This is the <b>Pultec trick</b> — a happy accident that became one of the most beloved EQ moves in history.",
+    tryit: "Set Low Frequency to <b>60&nbsp;Hz</b>, turn Low Boost up to <b>10</b>, and Low Atten to about <b>7</b>. Watch the curve.",
+    embed: "pultec.html"
+  },
+  {
+    // Screen 8 — EQ in Context
+    title: "Why does the Pultec trick work so well?",
+    textOnly: true,
+    body: "When engineers started using boost and cut together, they found something interesting: <b>the dip just above the boost " +
+          "actually makes the bass sound more pronounced.</b><br><br>" +
+          "It's all about contrast. The curve lifts the low end, then dips just above it — and that dip makes the boost feel " +
+          "stronger by comparison.<br><br>" +
+          "This reveals something important: <b>EQ curves don't exist in isolation.</b> They always work in relation to:" +
+          "<ul><li>The sound source itself</li>" +
+          "<li>Other EQ moves you make</li>" +
+          "<li>The rest of your signal chain (like compression)</li></ul>" +
+          "You can't isolate the effects — you have to work holistically, listening to how everything interacts, not just looking at individual curves.",
+    below: { img: "eqp-1a-curves.jpg", cap: "The full family of boost, attenuate and bandwidth curves from the original EQP-1A manual." }
+  },
+  {
+    // Screen 9 — One Last Thing
+    title: "Wait — can't I just recreate that curve on a Neve?",
+    body: "Good question. Let's find out.<br><br>" +
+          "You might get close… but notice how much more work it takes? You're manually shaping what the Pultec creates through " +
+          "interaction. And even if you match the curve, it won't sound identical — passive circuitry, tube gain, and saturation " +
+          "all color the sound too. (But that's a whole other conversation.)<br><br>" +
+          "What matters here: <b>Pultec-style EQs give you a unique curve because of how boost and cut interact.</b> The two shelves " +
+          "fighting each other create something you can't intuitively build elsewhere — and that's the Pultec trick.",
+    tryit: "Here's the Neve again. Try to shape it to match the Pultec trick curve you just made — a low bump with a dip just above it.",
+    embed: "neve.html?target=pultec"
+  }
+];
+
+// Put every control back to neutral before a screen sets its own preset.
+function reset() {
+  cs.pLowBoost = 0; cs.pLowAtten = 0; cs.pHighBoost = 0; cs.pHighAtten = 0;
+  cs.pBw = 3; cs.pLowFreq = 60; cs.pHighFreq = 10000; cs.pAttenFreq = 20000;
+  cs.nLowFreq = 110; cs.nLowGain = 0; cs.nMidFreq = 1600; cs.nMidGain = 0;
+  cs.nHighGain = 0; cs.nHpf = 0;
+}
+
+// ---------------------------------------------------------------------
+//  NAVIGATION
+// ---------------------------------------------------------------------
+var current = 0;
+
+// Shrink the embed iframe to its content height so the Try-it box sits right
+// under the faceplate (the embedded pages are local, so we can measure them).
+function resizeEmbed(f) {
+  try {
+    var doc = f.contentWindow.document;
+    var h = doc.body ? doc.body.scrollHeight : 0;
+    if (h) f.style.height = h + "px";
+  } catch (e) { /* not ready */ }
+}
+
+// Recolour a black-on-white line image to grey lines (matching the chart grid)
+// on a transparent background. Theme-aware; cached per src + mode.
+var greyCache = {};
+function setGreyImage(imgEl, src) {
+  var dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  var key = src + (dark ? "-d" : "-l");
+  if (greyCache[key]) { imgEl.src = greyCache[key]; return; }
+  var col = dark ? [42, 46, 51] : [228, 231, 234];           // faint grid tone (minor-grid grey)
+  var im = new Image();
+  im.onload = function () {
+    try {
+      var c = document.createElement("canvas");
+      c.width = im.naturalWidth; c.height = im.naturalHeight;
+      var cx = c.getContext("2d");
+      cx.drawImage(im, 0, 0);
+      var d = cx.getImageData(0, 0, c.width, c.height), a = d.data;
+      for (var i = 0; i < a.length; i += 4) {
+        var k = 1 - (a[i] + a[i + 1] + a[i + 2]) / 765;      // 0 = white, 1 = black ink
+        a[i] = col[0]; a[i + 1] = col[1]; a[i + 2] = col[2];
+        a[i + 3] = Math.round(k * 180);                      // kept faint
+      }
+      cx.putImageData(d, 0, 0);
+      greyCache[key] = c.toDataURL();
+      imgEl.src = greyCache[key];
+    } catch (e) { imgEl.src = src; }
+  };
+  im.src = src;
+}
+
+function buildDots() {
+  var d = document.getElementById("dots"); d.innerHTML = "";
+  var dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  var prom = dark ? [219, 223, 227] : [58, 63, 68];   // current (most prominent)
+  var dim  = dark ? [52, 58, 64]    : [235, 237, 239]; // faint (earliest / upcoming)
+  for (var i = 1; i < screens.length; i++) {           // skip the cover (index 0)
+    var s = document.createElement("span");
+    // Visited dots ramp from faint (earliest) to prominent (current); upcoming are faint.
+    var t = (i < current) ? (current - i) / (current - 1 || 1) : (i === current ? 0 : 1);
+    var c = [0, 1, 2].map(function (k) { return Math.round(prom[k] + (dim[k] - prom[k]) * t); });
+    s.style.background = "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+    s.className = i === current ? "active" : (i < current ? "done" : "");
+    d.appendChild(s);
+  }
+}
+
+function render() {
+  var s = screens[current];
+  var masthead = document.querySelector(".masthead"), cover = document.getElementById("cover");
+  var progress = document.getElementById("progress"), dots = document.getElementById("dots");
+  var title = document.getElementById("title"), body = document.getElementById("body");
+  var graph = document.getElementById("graph"), legend = document.getElementById("legend");
+  var controls = document.getElementById("controls"), embed = document.getElementById("embed");
+  var tryit = document.getElementById("tryit"), belowfig = document.getElementById("belowfig");
+  var caudiobar = document.getElementById("caudiobar");
+  var backBtn = document.getElementById("back"), nextBtn = document.getElementById("next");
+  // Chevrons for navigation; dead ends (cover back / last next) show nothing.
+  var CHEV = '<svg viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt" stroke-linejoin="miter"><path d="M11 4 L21 12 L11 20"/><path d="M23 4 L33 12 L23 20"/></svg>';
+  var atStart = (current === 0), atEnd = (current === screens.length - 1);
+  backBtn.innerHTML = atStart ? "" : CHEV;
+  nextBtn.innerHTML = atEnd ? "" : CHEV;
+  backBtn.disabled = atStart; nextBtn.disabled = atEnd;
+
+  if (s.cover) {
+    masthead.style.visibility = "hidden"; cover.style.display = "flex";
+    [progress, dots, title, body, graph, legend, controls, embed, tryit, belowfig].forEach(function (el) { el.style.display = "none"; });
+    cover.querySelector(".coverhear").appendChild(caudiobar); caudiobar.style.display = "block";   // Play button beside the "hear it" text
+    if (window.courseEq) window.courseEq([]);                          // dry while on the cover
+    return;
+  }
+
+  // Keep the Play button at the bottom of the stage content on every other screen.
+  document.getElementById("stage").appendChild(caudiobar); caudiobar.style.display = "block";
+
+  masthead.style.visibility = atEnd ? "hidden" : "visible"; cover.style.display = "none";
+  progress.style.display = "none"; dots.style.display = ""; title.style.display = ""; body.style.display = "";
+  title.textContent = s.title;
+  body.innerHTML = s.body;
+  buildDots();
+
+  // Try-it box sits above the unit
+  if (s.tryit) { tryit.style.display = "block"; tryit.innerHTML = "<b>Try it:</b> " + s.tryit; }
+  else { tryit.style.display = "none"; }
+
+  // Optional reference image below the unit (recoloured black→grey, bg→transparent)
+  if (s.below) {
+    belowfig.style.display = "block";
+    document.getElementById("belowcap").textContent = s.below.cap || "";
+    setGreyImage(document.getElementById("belowimg"), s.below.img);
+  } else {
+    belowfig.style.display = "none";
+  }
+
+  if (s.embed) {
+    graph.style.display = "none"; legend.style.display = "none"; controls.style.display = "none";
+    embed.style.display = "block";
+    if (embed.getAttribute("src") !== s.embed) {
+      embed.onload = function () { resizeEmbed(embed); cRequestCurrent(); };
+      embed.setAttribute("src", s.embed);
+    } else {
+      resizeEmbed(embed);
+      cRequestCurrent();                         // same iframe still loaded → re-apply its EQ
+    }
+  } else if (s.textOnly) {
+    graph.style.display = "none"; legend.style.display = "none"; controls.style.display = "none"; embed.style.display = "none";
+    if (window.courseEq) window.courseEq([]);  // no unit on screen → play dry
+  } else {
+    embed.style.display = "none";
+    graph.style.display = "block"; legend.style.display = "block"; controls.style.display = "flex";
+    s.preset();                                  // set this screen's starting values
+    buildControls(s.controls);
+    redraw();
+    if (window.courseEq) window.courseEq([]);
+  }
+}
+
+document.getElementById("back").addEventListener("click", function () {
+  if (current > 0) { current--; render(); }
+});
+document.getElementById("next").addEventListener("click", function () {
+  if (current < screens.length - 1) { current++; render(); }
+});
+
+// ---- Logo waveforms: compact cluster on the masthead (static, in HTML) with a
+//      trailing tail line; a big centered waveform on the cover. ----
+(function buildWaveLogos() {
+  var NS = "http://www.w3.org/2000/svg";
+  var spec = [  // [color var, peak y (up), trough y (down)] — Pultec-trick profile: big bump, shallow dip
+    ["--c-red", -3, 32], ["--c-orange", 5, 29], ["--c-yellow", 8, 28],
+    ["--c-green", 11, 26], ["--c-teal", 14, 25], ["--c-blue", 16, 24]
+  ];
+  // Cover: bump that descends straight into a shallower dip, then a long flat line to each edge.
+  var cover = document.querySelector("#cover .coverwave");
+  if (cover) {
+    cover.setAttribute("viewBox", "0 0 600 44");
+    spec.forEach(function (s, i) {
+      var pk = s[1], tr = s[2];
+      var d = "M0 22 L80 22 C 130 22, 150 " + pk + ", 185 " + pk +
+              " C 220 " + pk + ", 240 " + tr + ", 285 " + tr +
+              " C 325 " + tr + ", 360 22, 600 22";
+      var p = document.createElementNS(NS, "path");
+      p.setAttribute("d", d); p.setAttribute("stroke", "var(" + s[0] + ")");
+      p.setAttribute("fill", "none"); p.setAttribute("stroke-width", "2.4");
+      p.setAttribute("stroke-linecap", "round"); p.setAttribute("stroke-linejoin", "round");
+      p.setAttribute("vector-effect", "non-scaling-stroke");
+      p.style.animationDelay = (i * 0.18) + "s";
+      cover.appendChild(p);
+    });
+  }
+  // Masthead tail: tight, almost-single line that gently moves, running right.
+  var tail = document.getElementById("logotail");
+  var lead = document.getElementById("logolead");
+  var colors = ["#e24b3f", "#f08a3c", "#eccf3f", "#5cb85a", "#3fb2a6", "#4a90d9"];
+  var amps = [3, 2.4, 1.9, 2.6, 2.1, 1.6], phases = [0, 1.1, 2.2, 3.1, 4.3, 5.2], delays = [0, .18, .36, .54, .72, .9];
+  colors.forEach(function (col, i) {
+    // right tail: flat at the cluster (x=0), ripples toward the right edge
+    var dR = "", dL = "";
+    for (var x = 0; x <= 200; x += 4) {
+      var rR = Math.min(1, x / 36);
+      var rL = Math.min(1, (200 - x) / 36);          // left tail mirrors it: flat at cluster (x=200), ripples toward the left edge
+      dR += (x === 0 ? "M" : " L") + x + " " + (22 + amps[i] * 0.55 * rR * Math.sin((x / 110) * 2 * Math.PI + phases[i])).toFixed(1);
+      dL += (x === 0 ? "M" : " L") + x + " " + (22 + amps[i] * 0.3 * rL * Math.sin((x / 110) * 2 * Math.PI + phases[i])).toFixed(1);
+    }
+    [[tail, dR], [lead, dL]].forEach(function (pair) {
+      var p = document.createElementNS(NS, "path");
+      p.setAttribute("d", pair[1]); p.setAttribute("stroke", col); p.setAttribute("vector-effect", "non-scaling-stroke");
+      p.style.animationDelay = delays[i] + "s";
+      pair[0].appendChild(p);
+    });
+  });
+})();
+
+render();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+// ---------------------------------------------------------------------
+//  AUDIO (course-level, so it keeps playing as you move between screens)
+//  One looping clip runs through a chain of EQ filters. Whichever unit is
+//  on screen feeds its settings to window.courseEq(); the clip plays on
+//  through navigation — only Pause stops it.
+// ---------------------------------------------------------------------
+var cAudio = { ctx: null, source: null, nodes: [], sig: null };
+
+function cEnsure() {
+  if (cAudio.ctx) return;                 // built once, on first Play
+  var AC = window.AudioContext || window.webkitAudioContext;
+  cAudio.ctx = new AC();
+  cAudio.source = cAudio.ctx.createMediaElementSource(document.getElementById("caudio"));
+}
+
+// Apply a list of filter specs [{type, freq, gain, q}] to the live chain.
+// An empty list means "no EQ" — the clip plays dry (used on the cover and
+// text-only screens).
+window.courseEq = function (params) {
+  if (!cAudio.ctx) return;                // audio hasn't been started yet
+  params = params || [];
+  var sig = params.map(function (p) { return p.type; }).join(",");
+  if (sig !== cAudio.sig) {               // the chain's shape changed → rebuild it
+    try { cAudio.source.disconnect(); } catch (e) {}
+    cAudio.nodes.forEach(function (n) { try { n.disconnect(); } catch (e) {} });
+    cAudio.nodes = params.map(function (p) { var b = cAudio.ctx.createBiquadFilter(); b.type = p.type; return b; });
+    var prev = cAudio.source;
+    cAudio.nodes.forEach(function (n) { prev.connect(n); prev = n; });
+    prev.connect(cAudio.ctx.destination);
+    cAudio.sig = sig;
+  }
+  var t = cAudio.ctx.currentTime;
+  params.forEach(function (p, i) {
+    var n = cAudio.nodes[i];
+    n.frequency.setTargetAtTime(p.freq, t, 0.02);
+    if (p.gain != null) n.gain.setTargetAtTime(p.gain, t, 0.02);
+    if (p.q != null) n.Q.value = p.q;
+  });
+};
+
+// Ask the on-screen unit to send its current EQ (used when audio first starts,
+// or when returning to a screen whose iframe didn't reload). Units reply by
+// postMessage. Cover / text screens have no unit, so they go dry.
+function cRequestCurrent() {
+  var s = screens[current], embed = document.getElementById("embed");
+  if (s && s.embed && embed.contentWindow) {
+    try { embed.contentWindow.postMessage({ type: "requestEq" }, "*"); } catch (e) {}
+  } else {
+    window.courseEq([]);
+  }
+}
+
+// The play / pause button (a single button we move into place per screen).
+(function setupCourseAudio() {
+  var btn = document.getElementById("caudiobtn");
+  var audio = document.getElementById("caudio");
+
+  // Units live in iframes and send their EQ settings by postMessage. On file://
+  // each frame has the "null" origin, so direct frame access is blocked —
+  // postMessage is the one channel that works there (and on GitHub Pages too).
+  window.addEventListener("message", function (e) {
+    if (e.data && e.data.type === "eqParams") window.courseEq(e.data.params);
+  });
+
+  btn.addEventListener("click", function () {
+    cEnsure();
+    if (cAudio.ctx.state !== "running") { try { cAudio.ctx.resume(); } catch (e) {} }
+    if (audio.paused) {
+      window.courseEq([]);        // connect right away so sound flows (dry)
+      cRequestCurrent();          // then ask the on-screen unit to shape it
+      var p = audio.play();
+      if (p) p.catch(function () {});
+    } else {
+      audio.pause();
+    }
+  });
+  audio.addEventListener("play",  function () { btn.textContent = "⏸"; btn.title = "Pause";      btn.setAttribute("aria-label", "Pause");      btn.classList.add("playing"); });
+  audio.addEventListener("pause", function () { btn.textContent = "▶"; btn.title = "Play audio"; btn.setAttribute("aria-label", "Play audio"); btn.classList.remove("playing"); });
+})();
+</script>
+</body>
+</html>
